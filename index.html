@@ -1200,7 +1200,7 @@ function switchContract(code, mkt) {
   currentContract = code; currentMkt = mkt;
   var c = findContract(code, mkt);
   currentName = c ? c.name : code;
-  priceHistory = []; klineData = [];
+  priceHistory = []; klineData = []; futuresPrice = 0;
 
   // 加载该合约专属的现货/库存/利润设置到UI
   loadContractSettings(c);
