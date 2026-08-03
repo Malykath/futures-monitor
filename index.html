@@ -193,6 +193,7 @@
     .badge-ok { background: #dcfce7; color: #166534; }
     .badge-err { background: #fee2e2; color: #991b1b; }
     .badge-info { background: #dbeafe; color: #1e40af; }
+    .badge-closing { background: #fef3c7; color: #92400e; }
 
     .flex-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .spacer { flex: 1; }
@@ -342,7 +343,7 @@
         <span class="spacer"></span>
         <span class="badge badge-info" id="dataSource">连接中...</span>
       </div>
-      <div class="note">交易时段：白盘 9:00-11:30/13:30-15:00，夜盘 21:00-23:00（周一至周五）<br>数据来源：东方财富实时行情，开市每10秒刷新。</div>
+      <div class="note">交易时段：白盘 9:00-11:30/13:30-15:00，夜盘 21:00-23:00（周一至周五）<br>数据来源：东方财富。开市每10秒刷新，休市自动显示收盘价。</div>
     </div>
 
     <!-- 综合信号 -->
@@ -799,10 +800,36 @@ function fetchQuote(mkt, code, callback) {
   });
 }
 
-function fetchRealQuote() {
+function fetchRealQuote(forceRefresh) {
   var open = updateMarketStatus();
-  if (!open && futuresPrice > 0) return;
 
+  // 休市时：已有数据就不再请求API，直接显示收盘价
+  if (!open && futuresPrice > 0 && !forceRefresh) {
+    document.getElementById('dataSource').textContent = '收盘价';
+    document.getElementById('dataSource').className = 'badge badge-closing';
+    document.getElementById('quoteTitle').textContent = '期货收盘价 · ' + (currentName || currentContract);
+    return;
+  }
+
+  // 休市时无数据：尝试一次API获取（东方财富API休市返回最后成交价）
+  if (!open && futuresPrice === 0) {
+    fetchQuote(currentMkt, currentContract, function(data) {
+      var dsEl = document.getElementById('dataSource');
+      if (!data || !data.f43) {
+        dsEl.textContent = '休市中'; dsEl.className = 'badge badge-closing';
+        document.getElementById('futuresPrice').textContent = '休市中';
+        document.getElementById('futuresPrice').className = 'big-number';
+        document.getElementById('futuresChange').textContent = '--';
+        document.getElementById('quoteTitle').textContent = '期货行情 · ' + (currentName || currentContract);
+        return;
+      }
+      dsEl.textContent = '收盘价'; dsEl.className = 'badge badge-closing';
+      applyQuoteData(data, true);
+    });
+    return;
+  }
+
+  // 开市：正常实时获取
   fetchQuote(currentMkt, currentContract, function(data) {
     var dsEl = document.getElementById('dataSource');
     if (!data) {
@@ -810,30 +837,34 @@ function fetchRealQuote() {
       if (!futuresPrice) document.getElementById('futuresPrice').textContent = '获取失败';
       return;
     }
-    dsEl.textContent = '真实行情·东方财富'; dsEl.className = 'badge badge-ok';
-
-    futuresPrice = data.f43;
-    var c = { price: data.f43, open: data.f46, high: data.f44, low: data.f45,
-              preClose: data.f60 || data.f48, volume: data.f47, change: data.f169,
-              changePct: data.f170, name: data.f58 };
-    currentName = c.name || currentName;
-
-    if (priceHistory.length === 0 || priceHistory[priceHistory.length-1] !== futuresPrice) {
-      priceHistory.push(futuresPrice);
-    }
-    if (priceHistory.length > 120) priceHistory.shift();
-
-    if (klineData && klineData.length > 0) {
-      updateLatestKlineCandle(futuresPrice, c.high, c.low, c.volume);
-    }
-
-    updateFuturesDisplay(c);
-    calculateSignals();
-    updateTabPrices();
+    dsEl.textContent = '实时行情·东方财富'; dsEl.className = 'badge badge-ok';
+    applyQuoteData(data, false);
   });
 }
 
-function updateFuturesDisplay(c) {
+// 统一处理行情数据
+function applyQuoteData(data, isClosing) {
+  futuresPrice = data.f43;
+  var c = { price: data.f43, open: data.f46, high: data.f44, low: data.f45,
+            preClose: data.f60 || data.f48, volume: data.f47, change: data.f169,
+            changePct: data.f170, name: data.f58 };
+  currentName = c.name || currentName;
+
+  if (priceHistory.length === 0 || priceHistory[priceHistory.length-1] !== futuresPrice) {
+    priceHistory.push(futuresPrice);
+  }
+  if (priceHistory.length > 120) priceHistory.shift();
+
+  if (klineData && klineData.length > 0) {
+    updateLatestKlineCandle(futuresPrice, c.high, c.low, c.volume);
+  }
+
+  updateFuturesDisplay(c, isClosing);
+  calculateSignals();
+  updateTabPrices();
+}
+
+function updateFuturesDisplay(c, isClosing) {
   var change = c.change !== undefined ? c.change : (c.preClose ? futuresPrice - c.preClose : 0);
   var pct = c.changePct !== undefined ? c.changePct / 100 : (c.preClose ? change / c.preClose * 100 : 0);
   var cls = change >= 0 ? 'up' : 'down';
@@ -847,7 +878,7 @@ function updateFuturesDisplay(c) {
   document.getElementById('lowPrice').textContent = c.low || '--';
   document.getElementById('preClose').textContent = c.preClose || '--';
   document.getElementById('volume').textContent = c.volume ? c.volume.toLocaleString() : '--';
-  document.getElementById('quoteTitle').textContent = '实时行情 · ' + (c.name || currentContract);
+  document.getElementById('quoteTitle').textContent = (isClosing ? '期货收盘价 · ' : '实时行情 · ') + (c.name || currentContract);
 }
 
 // ============ K线数据 ============
@@ -1360,8 +1391,8 @@ window.onload = function() {
   setInterval(function() {
     var open = updateMarketStatus();
     if (open !== lastMarketState) {
-      if (open) { fetchRealQuote(); addLog('市场开市，开始实时获取行情'); }
-      else { addLog('市场收盘，价格静止'); }
+      if (open) { fetchRealQuote(true); addLog('市场开市，开始实时获取行情'); }
+      else { addLog('市场收盘，价格静止于收盘价'); }
       lastMarketState = open;
     }
   }, 1000);
