@@ -1,0 +1,19 @@
+{
+  "name": "期货实时盯盘预测系统",
+  "short_name": "期货盯盘",
+  "description": "基于概率思维与逻辑思维交易系统，支持任意期货合约实时行情、15日K线图和四因子分析",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f7f9fc",
+  "theme_color": "#1e40af",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
