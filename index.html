@@ -446,15 +446,15 @@
 
     <!-- 替代品监控（仅白糖） -->
     <div class="card" id="substitutionCard" style="display:none;">
-      <h2>🌽 替代品监控</h2>
+      <h2>🌽 替代品监控 <span id="subSource" style="font-size:11px;color:var(--muted);font-weight:normal;"></span></h2>
       <p class="note" id="substitutionNote"></p>
       <div class="input-group">
-        <label>该品种现货价（元/吨）</label>
-        <input type="number" id="mainSpotInput" value="5200" inputmode="numeric">
+        <label>该品种现货价（元/吨） <span id="mainSpotSource" style="font-size:10px;color:var(--green);"></span></label>
+        <input type="number" id="mainSpotInput" value="5200" inputmode="numeric" onchange="updateSubstitution()">
       </div>
       <div class="input-group">
-        <label>替代品现货价（元/吨）</label>
-        <input type="number" id="altSpotInput" value="3600" inputmode="numeric">
+        <label>替代品现货价（元/吨） <span id="altSpotSource" style="font-size:10px;color:var(--green);"></span></label>
+        <input type="number" id="altSpotInput" value="3600" inputmode="numeric" onchange="updateSubstitution()">
       </div>
       <button onclick="updateSubstitution()">计算替代风险</button>
       <div style="margin-top:10px;">
@@ -571,6 +571,7 @@ function loadSpotPrices() {
           console.log('生意社现货价加载成功: ' + data.update_time + ', ' + Object.keys(data.varieties).length + '个品种');
           // 重新应用现货价到已加载的合约
           refreshAllContractSpotPrices();
+          checkSugarSubstitution();
           addLog('已从生意社加载最新现货价格（' + data.update_time + '）');
         }
       } catch(e) { console.log('现货价JSON解析失败', e); }
@@ -1077,7 +1078,30 @@ function checkSugarSubstitution() {
   if (isSugar) {
     card.style.display = '';
     document.getElementById('substitutionNote').textContent = '文档提示：玉米跌→淀粉糖跌→替代白糖→白糖需求降→白糖跌。价差 > 1500 元/吨时终端大量改用淀粉糖。';
-    document.getElementById('mainSpotInput').value = getSpotMid();
+    
+    // 自动从 spotPriceData 获取白糖现货价
+    var sugarSpot = null, starchSpot = null, sourceTag = '';
+    if (spotPriceData && spotPriceData.varieties) {
+      if (typeof spotPriceData.varieties['SR'] === 'number' && spotPriceData.varieties['SR'] > 0) {
+        sugarSpot = spotPriceData.varieties['SR'];
+      }
+      if (typeof spotPriceData.varieties['cs'] === 'number' && spotPriceData.varieties['cs'] > 0) {
+        starchSpot = spotPriceData.varieties['cs'];
+      }
+      sourceTag = ' · ' + (spotPriceData.update_time || '自动');
+    }
+    
+    // 如果 API 有数据就用 API，否则用合约本地存储的值
+    var cur = findContract(currentContract, currentMkt);
+    if (sugarSpot === null) sugarSpot = (cur && typeof cur.spot === 'number') ? cur.spot : 5200;
+    if (starchSpot === null) starchSpot = 3000; // 兜底：玉米淀粉约3000元/吨
+    
+    document.getElementById('mainSpotInput').value = sugarSpot;
+    document.getElementById('altSpotInput').value = starchSpot;
+    document.getElementById('mainSpotSource').textContent = sugarSpot !== null ? '(生意社自动)' : '';
+    document.getElementById('altSpotSource').textContent = starchSpot !== null ? '(生意社自动)' : '';
+    document.getElementById('subSource').textContent = sourceTag;
+    
     updateSubstitution();
   } else {
     card.style.display = 'none';
