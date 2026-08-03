@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>期货实时盯盘预测系统</title>
+
+  <!-- PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="期货盯盘">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <meta name="theme-color" content="#1e40af">
+  <meta name="description" content="基于概率思维与逻辑思维交易系统，支持任意期货合约实时行情、15日K线图。链接发出去就能用，手机电脑都行。">
+  <link rel="manifest" href="manifest.json">
+
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+  <style>
+    :root {
+      --bg: #f7f9fc; --card: #ffffff; --text: #1f2937; --muted: #6b7280;
+      --border: #e5e7eb; --up: #ef4444; --down: #22c55e;
+      --long: #dc2626; --short: #16a34a; --neutral: #f59e0b; --primary: #2563eb;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg); color: var(--text); line-height: 1.6;
+      padding: 12px; min-height: 100vh; min-height: 100dvh;
+    }
+    .container { max-width: 1300px; margin: 0 auto; }
+
+    /* ====== Header ====== */
+    header {
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+      gap: 10px; margin-bottom: 10px;
+    }
+    header h1 {
+      font-size: 1.2rem; margin: 0; white-space: nowrap;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .subtitle { color: var(--muted); font-size: 0.78rem; }
+
+    /* PWA install button */
+    .install-btn {
+      display: none; align-items: center; gap: 4px;
+      background: #1e40af; color: #fff; border: none;
+      padding: 6px 12px; border-radius: 20px; font-size: 0.78rem;
+      cursor: pointer; font-weight: 600; white-space: nowrap;
+    }
+    .install-btn.show { display: inline-flex; }
+    .install-banner {
+      display: none; background: #1e40af; color: #fff; text-align: center;
+      padding: 10px 16px; border-radius: 10px; margin-bottom: 10px;
+      font-size: 0.9rem; cursor: pointer; font-weight: 600;
+    }
+    .install-banner.show { display: block; }
+
+    /* ====== Search ====== */
+    .search-wrap { position: relative; min-width: 200px; flex: 1; max-width: 360px; }
+    .search-wrap input {
+      width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px;
+      font-size: 0.88rem; outline: none; background: var(--card);
+    }
+    .search-wrap input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37,99,235,0.15); }
+    .search-dropdown {
+      position: absolute; top: 100%; left: 0; right: 0; z-index: 100;
+      background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15); max-height: 260px; overflow: auto; display: none;
+    }
+    .search-dropdown.show { display: block; }
+    .search-item {
+      padding: 10px 14px; cursor: pointer; font-size: 0.85rem;
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid var(--border); user-select: none;
+    }
+    .search-item:last-child { border-bottom: none; }
+    .search-item:hover, .search-item:active { background: #eff6ff; }
+    .search-item .code { font-weight: 700; color: var(--primary); }
+    .search-item .mkt { font-size: 0.7rem; color: var(--muted); }
+    .search-no-result { padding: 14px; text-align: center; color: var(--muted); font-size: 0.85rem; }
+
+    /* ====== Tab Bar ====== */
+    .tab-bar {
+      display: flex; gap: 6px; margin-bottom: 14px; align-items: center;
+      overflow-x: auto; -webkit-overflow-scrolling: touch;
+      scrollbar-width: none; padding-bottom: 2px;
+    }
+    .tab-bar::-webkit-scrollbar { display: none; }
+    .tab {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border-radius: 20px; font-size: 0.83rem; cursor: pointer;
+      border: 1px solid var(--border); background: var(--card); transition: all 0.15s;
+      white-space: nowrap; flex-shrink: 0; user-select: none;
+    }
+    .tab:active { transform: scale(0.96); }
+    .tab.active { background: var(--primary); color: #fff; border-color: var(--primary); font-weight: 600; }
+    .tab .remove {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 20px; height: 20px; border-radius: 50%; font-size: 0.8rem;
+      cursor: pointer; opacity: 0.5; transition: opacity 0.15s; flex-shrink: 0;
+    }
+    .tab .remove:hover, .tab .remove:active { opacity: 1; background: rgba(0,0,0,0.12); }
+    .tab.active .remove:hover, .tab.active .remove:active { background: rgba(255,255,255,0.25); }
+
+    /* ====== Grid ====== */
+    .grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    }
+    .card {
+      background: var(--card); border-radius: 12px; padding: 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid var(--border);
+    }
+    .card.wide { grid-column: span 2; }
+    .card h2 {
+      font-size: 0.92rem; margin: 0 0 10px; color: var(--text);
+      border-left: 4px solid var(--primary); padding-left: 8px;
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    }
+
+    /* ====== Price display ====== */
+    .big-number { font-size: 2rem; font-weight: 700; line-height: 1.2; }
+    .change { font-size: 0.9rem; font-weight: 600; margin-left: 8px; }
+    .up { color: var(--up); }
+    .down { color: var(--down); }
+    .info-row {
+      margin-top: 8px; font-size: 0.82rem; color: var(--muted);
+      display: flex; flex-wrap: wrap; gap: 2px 12px;
+    }
+
+    /* ====== Signal ====== */
+    .signal-pill {
+      display: inline-block; padding: 6px 20px; border-radius: 20px;
+      color: #fff; font-weight: 700; font-size: 1rem;
+    }
+    .signal-strong-long { background: var(--long); }
+    .signal-long { background: #f87171; }
+    .signal-neutral { background: var(--neutral); }
+    .signal-short { background: #4ade80; color: #064e3b; }
+    .signal-strong-short { background: var(--short); }
+
+    /* ====== Factors ====== */
+    .factor-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 7px 0; border-bottom: 1px dashed var(--border);
+    }
+    .factor-row:last-child { border-bottom: none; }
+    .factor-name { font-weight: 500; font-size: 0.85rem; }
+    .factor-val { font-weight: 700; font-size: 0.88rem; }
+    .factor-score { font-size: 0.75rem; color: var(--muted); }
+
+    .score-bar {
+      height: 10px; background: linear-gradient(to right, var(--long) 0%, var(--neutral) 50%, var(--short) 100%);
+      border-radius: 5px; position: relative; margin-top: 10px;
+    }
+    .score-marker {
+      position: absolute; top: -6px; width: 4px; height: 22px; background: #111;
+      border-radius: 2px; transform: translateX(-50%); transition: left 0.3s;
+    }
+    .legend {
+      display: flex; justify-content: space-between; font-size: 0.68rem; color: var(--muted); margin-top: 4px;
+    }
+    .formula-box {
+      background: #f3f4f6; border-radius: 8px; padding: 12px; font-size: 0.82rem; margin-top: 10px;
+    }
+    .formula-short { color: var(--short); font-weight: 700; }
+    .formula-long { color: var(--long); font-weight: 700; }
+
+    /* ====== K-line ====== */
+    .kline-container { width: 100%; height: 380px; }
+
+    /* ====== Form ====== */
+    .input-group { margin-bottom: 8px; }
+    .input-group label { display: block; font-size: 0.8rem; margin-bottom: 3px; color: var(--muted); }
+    .input-group input, .input-group select {
+      width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px;
+      font-size: 0.88rem; background: var(--card); -webkit-appearance: none;
+    }
+    button {
+      background: var(--primary); color: #fff; border: none; padding: 8px 16px;
+      border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500;
+      transition: opacity 0.15s; white-space: nowrap;
+    }
+    button:active { opacity: 0.8; transform: scale(0.97); }
+    button.green { background: #16a34a; }
+    button.red { background: #ef4444; }
+    button.gray { background: #6b7280; }
+
+    /* ====== Badges ====== */
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.68rem; font-weight: 600;
+    }
+    .badge-ok { background: #dcfce7; color: #166534; }
+    .badge-err { background: #fee2e2; color: #991b1b; }
+    .badge-info { background: #dbeafe; color: #1e40af; }
+
+    .flex-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .spacer { flex: 1; }
+    .note { font-size: 0.75rem; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+    .log-entry { font-size: 0.8rem; padding: 6px 0; border-bottom: 1px solid var(--border); }
+    .log-time { color: var(--muted); font-size: 0.7rem; }
+    .warn { color: var(--neutral); font-weight: 600; }
+
+    /* ====== PWA Toast ====== */
+    .pwa-toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: #1f2937; color: #fff; padding: 12px 20px; border-radius: 12px;
+      font-size: 0.85rem; z-index: 999; display: none; white-space: nowrap;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3); align-items: center; gap: 10px;
+    }
+    .pwa-toast.show { display: flex; }
+    .pwa-toast button {
+      background: var(--primary); color: #fff; border: none;
+      padding: 4px 12px; border-radius: 14px; font-size: 0.8rem; cursor: pointer;
+    }
+    .pwa-toast .close {
+      background: transparent; color: #9ca3af; padding: 0; font-size: 1.1rem; margin-left: 4px;
+    }
+
+    /* ====== RESPONSIVE: Tablet (600-1024px) ====== */
+    @media (max-width: 1024px) {
+      .grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+      .card { padding: 12px; }
+      .card.wide { grid-column: span 2; }
+      .kline-container { height: 320px; }
+      .big-number { font-size: 1.6rem; }
+      header { gap: 8px; }
+      header h1 { font-size: 1.1rem; }
+    }
+
+    /* ====== RESPONSIVE: Mobile (< 600px) ====== */
+    @media (max-width: 600px) {
+      body { padding: 8px; }
+      .container { max-width: 100%; }
+
+      /* Single column */
+      .grid { grid-template-columns: 1fr; gap: 8px; }
+      .card.wide { grid-column: span 1; }
+
+      /* Header: title on top, search below */
+      header { flex-direction: column; align-items: stretch; gap: 8px; }
+      header > div:first-child { text-align: center; }
+      header h1 { font-size: 1.05rem; justify-content: center; }
+      .subtitle { font-size: 0.73rem; }
+      .search-wrap { max-width: 100%; width: 100%; }
+
+      /* Cards */
+      .card { padding: 12px 10px; border-radius: 10px; }
+      .card h2 { font-size: 0.85rem; }
+
+      /* Price */
+      .big-number { font-size: 1.8rem; }
+      .change { font-size: 0.85rem; }
+      .info-row { font-size: 0.76rem; gap: 2px 8px; }
+
+      /* K-line: smaller on phone */
+      .kline-container { height: 260px; }
+
+      /* Tabs: larger touch target */
+      .tab { padding: 8px 14px; font-size: 0.85rem; }
+      .tab .remove { width: 22px; height: 22px; font-size: 0.85rem; }
+
+      /* Buttons: full width on mobile */
+      button { width: 100%; padding: 10px; font-size: 0.88rem; margin-bottom: 6px; }
+      button + button { margin-left: 0 !important; }
+
+      /* Search items: bigger touch area */
+      .search-item { padding: 12px 14px; font-size: 0.9rem; }
+
+      /* Inputs: bigger on mobile */
+      .input-group input, .input-group select { padding: 10px; font-size: 0.92rem; }
+
+      /* Signal */
+      .signal-pill { font-size: 0.9rem; padding: 5px 16px; }
+
+      /* Formula box */
+      .formula-box { font-size: 0.78rem; padding: 10px; }
+
+      /* Install banner */
+      .install-banner { font-size: 0.85rem; padding: 10px 14px; border-radius: 8px; }
+
+      /* Log */
+      .log-entry { font-size: 0.82rem; }
+    }
+
+    /* ====== RESPONSIVE: Very small phone (< 380px) ====== */
+    @media (max-width: 380px) {
+      .big-number { font-size: 1.5rem; }
+      .kline-container { height: 220px; }
+      .tab { padding: 6px 10px; font-size: 0.78rem; }
+      header h1 { font-size: 0.95rem; }
+      .info-row { font-size: 0.72rem; }
+      .legend { font-size: 0.62rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- PWA Install Banner (shown on mobile before installed) -->
+  <div class="install-banner" id="installBanner" onclick="installPWA()">
+    📲 点这里添加到手机桌面，像APP一样使用
+  </div>
+
+  <!-- Header -->
+  <header>
+    <div>
+      <h1>📊 期货实时盯盘预测系统</h1>
+      <div class="subtitle">实时行情 · 15日K线 · 手机电脑都能用 · 链接发出去就能打开</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <button class="install-btn" id="installBtn" onclick="installPWA()" title="添加到桌面">📲 安装应用</button>
+      <div class="search-wrap">
+        <input type="text" id="searchInput" placeholder="搜索合约（如 SR609、螺纹、甲醇）..." autocomplete="off" enterkeyhint="search">
+        <div class="search-dropdown" id="searchDropdown"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Tab Bar -->
+  <div class="tab-bar" id="tabBar"></div>
+
+  <!-- Main Grid -->
+  <div class="grid">
+    <!-- 实时行情 -->
+    <div class="card">
+      <h2 id="quoteTitle">实时期货行情</h2>
+      <div class="flex-row">
+        <div class="big-number" id="futuresPrice">--</div>
+        <span class="change" id="futuresChange">--</span>
+      </div>
+      <div class="info-row">
+        开盘 <span id="openPrice">--</span> &nbsp;|&nbsp;
+        最高 <span id="highPrice">--</span> &nbsp;|&nbsp;
+        最低 <span id="lowPrice">--</span> &nbsp;|&nbsp;
+        昨结 <span id="preClose">--</span> &nbsp;|&nbsp;
+        成交 <span id="volume">--</span> 手
+      </div>
+      <div class="flex-row" style="margin-top:8px;">
+        <span id="marketDot" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#9ca3af;"></span>
+        <span id="marketStatus" style="font-weight:600;color:var(--muted);font-size:0.82rem;">检查中...</span>
+        <span class="spacer"></span>
+        <span class="badge badge-info" id="dataSource">连接中...</span>
+      </div>
+      <div class="note">交易时段：白盘 9:00-11:30/13:30-15:00，夜盘 21:00-23:00（周一至周五）<br>数据来源：东方财富实时行情，开市每10秒刷新。</div>
+    </div>
+
+    <!-- 综合信号 -->
+    <div class="card">
+      <h2>综合交易信号</h2>
+      <div style="text-align:center;margin:10px 0;">
+        <span class="signal-pill" id="overallSignal">计算中...</span>
+      </div>
+      <div style="text-align:center;font-size:1.6rem;font-weight:700;" id="scoreDisplay">0</div>
+      <div class="score-bar">
+        <div class="score-marker" id="scoreMarker" style="left:50%;"></div>
+      </div>
+      <div class="legend">
+        <span>强烈做多</span><span>偏多</span><span>观望</span><span>偏空</span><span>强烈做空</span>
+      </div>
+      <div class="formula-box">
+        <strong>文档核心公式：</strong><br>
+        <span class="formula-short">高升水 + 高库存 + 高利润 + 顶分型 → 择机做空</span><br>
+        <span class="formula-long">深贴水 + 低库存 + 低利润 + 底分型 → 择机做多</span>
+      </div>
+    </div>
+
+    <!-- K线图 -->
+    <div class="card wide">
+      <h2>📈 近15日K线图 <span class="badge badge-ok" id="klineBadge" style="margin-left:4px;">--</span></h2>
+      <div class="kline-container" id="klineChart"></div>
+    </div>
+
+    <!-- 四因子分析 -->
+    <div class="card">
+      <h2>四因子逐项分析</h2>
+      <div class="factor-row">
+        <div>
+          <div class="factor-name">① 期现基差（升贴水）</div>
+          <div class="factor-score">期货价 − 现货价</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="factor-val" id="basisVal">--</div>
+          <div class="factor-score" id="basisScore">--</div>
+        </div>
+      </div>
+      <div class="factor-row">
+        <div>
+          <div class="factor-name">② 现货库存状态</div>
+          <div class="factor-score">相对历史同期水平</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="factor-val" id="inventoryVal">--</div>
+          <div class="factor-score" id="inventoryScore">--</div>
+        </div>
+      </div>
+      <div class="factor-row">
+        <div>
+          <div class="factor-name">③ 产业利润状态</div>
+          <div class="factor-score">制糖/进口利润</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="factor-val" id="profitVal">--</div>
+          <div class="factor-score" id="profitScore">--</div>
+        </div>
+      </div>
+      <div class="factor-row">
+        <div>
+          <div class="factor-name">④ K线分型信号</div>
+          <div class="factor-score">近5根K线形态</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="factor-val" id="fractalVal">--</div>
+          <div class="factor-score" id="fractalScore">--</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 数据设置 -->
+    <div class="card">
+      <h2>⚙️ 数据设置 · <span id="settingsContract" style="color:var(--accent);">白糖609 · 白糖</span></h2>
+      <div class="input-group">
+        <label>现货均价 <span id="spotUnit" style="color:var(--muted);font-weight:normal;">(元/吨)</span> <span id="spotSource" class="badge" style="font-size:0.65rem;margin-left:4px;"></span></label>
+        <input type="number" id="spotInput" value="5200" inputmode="numeric" onchange="saveContractSettings()">
+        <p class="note" style="margin-top:4px;">切换合约时自动匹配品种默认价，可手动修改。<span id="spotUpdateHint" style="color:var(--muted);"></span></p>
+      </div>
+      <div class="input-group">
+        <label>库存状态</label>
+        <select id="inventoryInput">
+          <option value="high">高库存（利空）</option>
+          <option value="normal">正常</option>
+          <option value="low">低库存（利多）</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>利润状态</label>
+        <select id="profitInput">
+          <option value="high">高利润（利空）</option>
+          <option value="normal">正常</option>
+          <option value="low">低利润/亏损（利多）</option>
+        </select>
+      </div>
+      <button onclick="applySettings()">应用设置</button>
+      <button class="green" onclick="fetchRealQuote()" style="margin-left:4px;">手动刷新行情</button>
+    </div>
+
+    <!-- 替代品监控（仅白糖） -->
+    <div class="card" id="substitutionCard" style="display:none;">
+      <h2>🌽 替代品监控</h2>
+      <p class="note" id="substitutionNote"></p>
+      <div class="input-group">
+        <label>该品种现货价（元/吨）</label>
+        <input type="number" id="mainSpotInput" value="5200" inputmode="numeric">
+      </div>
+      <div class="input-group">
+        <label>替代品现货价（元/吨）</label>
+        <input type="number" id="altSpotInput" value="3600" inputmode="numeric">
+      </div>
+      <button onclick="updateSubstitution()">计算替代风险</button>
+      <div style="margin-top:10px;">
+        <div class="factor-name">当前价差：<span class="factor-val" id="sugarSpread">--</span> 元/吨</div>
+        <div id="substitutionWarning"></div>
+      </div>
+    </div>
+
+    <!-- 交易记录 -->
+    <div class="card wide">
+      <h2>📝 交易思路记录</h2>
+      <div class="input-group">
+        <input type="text" id="logInput" placeholder="记录今日观察或操作思路..." style="width:100%;">
+      </div>
+      <button onclick="addLog()">添加记录</button>
+      <button class="gray" onclick="clearLogs()" style="margin-left:4px;">清空</button>
+      <div id="logList" style="margin-top:10px;max-height:180px;overflow:auto;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PWA Toast -->
+<div class="pwa-toast" id="pwaToast">
+  📲 点击上方按钮"安装应用"，添加到桌面使用
+  <button onclick="document.getElementById('pwaToast').classList.remove('show')" class="close">✕</button>
+</div>
+
+<script>
+// ============ PWA ============
+var deferredPrompt = null;
+
+// 注册 Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js').catch(function() {});
+  });
+}
+
+// 监听安装事件
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('installBtn').classList.add('show');
+  // 移动端显示横幅，桌面端显示按钮即可
+  if (window.innerWidth < 600) {
+    document.getElementById('installBanner').classList.add('show');
+  }
+  // 5秒后显示提示
+  setTimeout(function() {
+    if (!window.matchMedia('(display-mode: standalone)').matches) {
+      document.getElementById('pwaToast').classList.add('show');
+    }
+  }, 5000);
+});
+
+// 监听已安装
+window.addEventListener('appinstalled', function() {
+  document.getElementById('installBtn').classList.remove('show');
+  document.getElementById('installBanner').classList.remove('show');
+  document.getElementById('pwaToast').classList.remove('show');
+  deferredPrompt = null;
+});
+
+// 安装
+function installPWA() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(function(result) {
+      deferredPrompt = null;
+    });
+  } else {
+    // iOS Safari 或其他不支持原生安装的浏览器：显示手动教程
+    if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+      alert('在 Safari 浏览器中：\n点击底部中间的"分享"按钮 →\n向下滑动找到"添加到主屏幕" →\n点击右上角"添加"');
+    } else {
+      alert('点击浏览器菜单 → 选择"添加到主屏幕"或"安装应用"');
+    }
+  }
+}
+
+// 隐藏安装提示（已安装后自动隐藏）
+if (window.matchMedia('(display-mode: standalone)').matches) {
+  document.getElementById('installBtn').classList.remove('show');
+  document.getElementById('installBanner').classList.remove('show');
+}
+
+// ============ 全局状态 ============
+var currentContract = 'SR609';
+var currentMkt = 115;
+var currentName = '白糖609';
+var futuresPrice = 0;
+var priceHistory = [];
+var klineData = [];
+var klineChart = null;
+
+// ============ 现货价格数据源 ============
+// spotPriceData 通过加载 spot_data.json 获取（生意社每日更新）
+// 如果加载成功则优先使用，否则使用下方的 VARIETY_DEFAULTS 兜底
+var spotPriceData = null;
+var spotPriceUpdateTime = null;
+
+function loadSpotPrices() {
+  // 尝试从同目录加载生意社现货价格JSON
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', 'spot_data.json?_t=' + Date.now(), true);
+  xhr.timeout = 5000;
+  xhr.onload = function() {
+    if (xhr.status === 200) {
+      try {
+        var data = JSON.parse(xhr.responseText);
+        if (data && data.varieties && Object.keys(data.varieties).length > 0) {
+          spotPriceData = data;
+          spotPriceUpdateTime = data.update_time;
+          console.log('生意社现货价加载成功: ' + data.update_time + ', ' + Object.keys(data.varieties).length + '个品种');
+          // 重新应用现货价到已加载的合约
+          refreshAllContractSpotPrices();
+          addLog('已从生意社加载最新现货价格（' + data.update_time + '）');
+        }
+      } catch(e) { console.log('现货价JSON解析失败', e); }
+    }
+  };
+  xhr.onerror = function() {
+    // 静默失败，使用内置默认值
+    console.log('spot_data.json 不可用，使用内置默认现货价');
+  };
+  xhr.send();
+}
+
+function refreshAllContractSpotPrices() {
+  if (!spotPriceData) return;
+  var updated = 0;
+  myContracts.forEach(function(c) {
+    var v = getVariety(c.code).toUpperCase();
+    var spotFromAPI = spotPriceData.varieties[v];
+    if (typeof spotFromAPI === 'number' && spotFromAPI > 0) {
+      c.spot = spotFromAPI;
+      c.spotSource = '生意社';
+      c.spotUpdateTime = spotPriceData.update_time;
+      updated++;
+    }
+  });
+  if (updated > 0) {
+    saveContracts(myContracts);
+    // 刷新当前合约UI
+    var cur = findContract(currentContract, currentMkt);
+    if (cur) loadContractSettings(cur);
+  }
+}
+
+// ============ 品种默认现货价映射（内置兜底数据）============
+// 格式：品种代码 → { spot: 现货均价, name: 品种名, unit: 单位 }
+// 如果 spot_data.json 加载成功，优先使用那些数据
+var VARIETY_DEFAULTS = {
+  'SR':  { spot: 5200,  name: '白糖',     unit: '元/吨' },
+  'rb':  { spot: 3120,  name: '螺纹钢',   unit: '元/吨' },
+  'hc':  { spot: 3260,  name: '热轧卷板', unit: '元/吨' },
+  'MA':  { spot: 2620,  name: '甲醇',     unit: '元/吨' },
+  'TA':  { spot: 5945,  name: 'PTA',      unit: '元/吨' },
+  'm':   { spot: 3066,  name: '豆粕',     unit: '元/吨' },
+  'c':   { spot: 2250,  name: '玉米',     unit: '元/吨' },
+  'cu':  { spot: 106230,name: '沪铜',     unit: '元/吨' },
+  'i':   { spot: 708,   name: '铁矿石',   unit: '元/吨' },
+  'FG':  { spot: 1200,  name: '玻璃',     unit: '元/吨' },
+  'SA':  { spot: 1600,  name: '纯碱',     unit: '元/吨' },
+  'p':   { spot: 9000,  name: '棕榈油',   unit: '元/吨' },
+  'y':   { spot: 8200,  name: '豆油',     unit: '元/吨' },
+  'a':   { spot: 4200,  name: '豆一',     unit: '元/吨' },
+  'RM':  { spot: 2600,  name: '菜粕',     unit: '元/吨' },
+  'OI':  { spot: 8800,  name: '菜油',     unit: '元/吨' },
+  'CF':  { spot: 14800, name: '棉花',     unit: '元/吨' },
+  'sc':  { spot: 540,   name: '原油',     unit: '元/桶' },
+  'bu':  { spot: 3600,  name: '沥青',     unit: '元/吨' },
+  'ru':  { spot: 14600, name: '橡胶',     unit: '元/吨' },
+  'sp':  { spot: 5800,  name: '纸浆',     unit: '元/吨' },
+  'pp':  { spot: 7600,  name: '聚丙烯',   unit: '元/吨' },
+  'L':   { spot: 8200,  name: '塑料',     unit: '元/吨' },
+  'v':   { spot: 5600,  name: 'PVC',      unit: '元/吨' },
+  'eg':  { spot: 4600,  name: '乙二醇',   unit: '元/吨' },
+  'eb':  { spot: 8600,  name: '苯乙烯',   unit: '元/吨' },
+  'al':  { spot: 23150, name: '沪铝',     unit: '元/吨' },
+  'zn':  { spot: 24570, name: '沪锌',     unit: '元/吨' },
+  'pb':  { spot: 15675, name: '沪铅',     unit: '元/吨' },
+  'sn':  { spot: 409250,name: '沪锡',     unit: '元/吨' },
+  'ni':  { spot: 130500,name: '沪镍',     unit: '元/吨' },
+  'au':  { spot: 780,   name: '沪金',     unit: '元/克' },
+  'ag':  { spot: 13880, name: '沪银',     unit: '元/千克' },
+  'j':   { spot: 1748,  name: '焦炭',     unit: '元/吨' },
+  'jm':  { spot: 1686,  name: '焦煤',     unit: '元/吨' },
+  'ZC':  { spot: 800,   name: '动力煤',   unit: '元/吨' },
+  'SF':  { spot: 6200,  name: '硅铁',     unit: '元/吨' },
+  'SM':  { spot: 6100,  name: '硅锰',     unit: '元/吨' },
+  'AP':  { spot: 7800,  name: '苹果',     unit: '元/吨' },
+  'CJ':  { spot: 11000, name: '红枣',     unit: '元/吨' },
+  'PK':  { spot: 9200,  name: '花生',     unit: '元/吨' },
+  'LH':  { spot: 15000, name: '生猪',     unit: '元/吨' },
+  'jd':  { spot: 4200,  name: '鸡蛋',     unit: '元/500千克' },
+  'cs':  { spot: 2900,  name: '淀粉',     unit: '元/吨' },
+  'l':   { spot: 8500,  name: '塑料',     unit: '元/吨' },  // 小写l也支持
+  'fu':  { spot: 3600,  name: '燃料油',   unit: '元/吨' },
+  'lu':  { spot: 3900,  name: '低硫燃油', unit: '元/吨' },
+  'ss':  { spot: 15400, name: '不锈钢',   unit: '元/吨' },
+  'wr':  { spot: 3200,  name: '线材',     unit: '元/吨' }
+};
+
+// 从合约代码提取品种代码，如 SR609 → SR, rb2610 → rb, MA609 → MA
+function getVariety(code) {
+  if (!code) return '';
+  // 匹配：字母前缀 + 数字后缀
+  var m = code.match(/^([A-Za-z]+)/);
+  return m ? m[1] : code;
+}
+
+// 获取品种默认配置
+function getVarietyDefault(code) {
+  var v = getVariety(code);
+  // 不区分大小写查找
+  var info = VARIETY_DEFAULTS[v] || VARIETY_DEFAULTS[v.toUpperCase()];
+  if (!info) info = { spot: 5000, name: v, unit: '元/吨' };
+  return info;
+}
+
+// ============ 合约管理（localStorage持久化）============
+var STORAGE_KEY = 'futures_contracts_v4';
+
+function loadContracts() {
+  var raw = localStorage.getItem(STORAGE_KEY);
+  if (raw) {
+    try { return JSON.parse(raw); } catch(e) {}
+  }
+  // 首次使用：利用品种映射表预填默认现货数据
+  var defaults = [
+    { code: 'SR609', name: '白糖609', mkt: 115 },
+    { code: 'SR611', name: '白糖611', mkt: 115 },
+    { code: 'SR701', name: '白糖701', mkt: 115 }
+  ];
+  defaults.forEach(function(c) { ensureContractDefaults(c); });
+  return defaults;
+}
+
+function saveContracts(list) { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); }
+
+// 确保合约有完整的现货/库存/利润设置
+function ensureContractDefaults(c) {
+  var def = getVarietyDefault(c.code);
+  // 优先使用生意社加载的最新现货价
+  var v = getVariety(c.code).toUpperCase();
+  var spotFromAPI = spotPriceData ? spotPriceData.varieties[v] : null;
+  if (typeof spotFromAPI === 'number' && spotFromAPI > 0) {
+    if (typeof c.spot !== 'number') c.spot = spotFromAPI;
+    if (typeof c.spotUnit !== 'string') c.spotUnit = def.unit;
+    if (typeof c.varietyName !== 'string') c.varietyName = def.name;
+    c.spotSource = '生意社';
+    c.spotUpdateTime = spotPriceData.update_time;
+  } else {
+    if (typeof c.spot !== 'number') c.spot = def.spot;
+    if (typeof c.spotUnit !== 'string') c.spotUnit = def.unit;
+    if (typeof c.varietyName !== 'string') c.varietyName = def.name;
+  }
+  if (typeof c.inventory !== 'string') c.inventory = 'normal';
+  if (typeof c.profit !== 'string') c.profit = 'normal';
+}
+
+var myContracts = loadContracts();
+// 兼容旧数据升级
+var upgraded = false;
+myContracts.forEach(function(c) {
+  if (typeof c.spot !== 'number') { ensureContractDefaults(c); upgraded = true; }
+});
+if (upgraded) saveContracts(myContracts);
+
+// ============ 交易时段判断 ============
+function isMarketOpen() {
+  var now = new Date();
+  var day = now.getDay();
+  if (day === 0 || day === 6) return { open: false, reason: '周末休市' };
+  var minutes = now.getHours() * 60 + now.getMinutes();
+  if (minutes >= 540 && minutes <= 690) return { open: true, session: '白盘上午' };
+  if (minutes >= 810 && minutes <= 900) return { open: true, session: '白盘下午' };
+  if (minutes >= 1260 && minutes <= 1380) return { open: true, session: '夜盘' };
+  return { open: false, reason: '非交易时段' };
+}
+
+function updateMarketStatus() {
+  var st = isMarketOpen();
+  var dot = document.getElementById('marketDot');
+  var txt = document.getElementById('marketStatus');
+  var now = new Date();
+  if (st.open) {
+    dot.style.background = '#22c55e'; dot.style.boxShadow = '0 0 6px #22c55e';
+    txt.textContent = '开市中（' + st.session + '）'; txt.style.color = '#16a34a';
+  } else {
+    dot.style.background = '#9ca3af'; dot.style.boxShadow = 'none';
+    txt.textContent = '休市（' + st.reason + '）'; txt.style.color = '#6b7280';
+  }
+  return st.open;
+}
+
+// ============ JSONP 工具 ============
+var jsonpId = 0;
+function jsonpFetch(url, callback, timeoutMs) {
+  timeoutMs = timeoutMs || 8000;
+  var cbName = '_jpcb_' + (++jsonpId);
+  var script = document.createElement('script');
+  var fullUrl = url + (url.indexOf('?') > -1 ? '&' : '?') + 'cb=' + cbName;
+  script.src = fullUrl;
+  script.async = true;
+  var done = false, timer;
+
+  function cleanup() {
+    if (timer) clearTimeout(timer);
+    delete window[cbName];
+    if (script.parentNode) script.parentNode.removeChild(script);
+  }
+
+  window[cbName] = function(resp) {
+    if (done) return;
+    done = true; cleanup(); callback(resp);
+  };
+
+  script.onerror = function() {
+    if (done) return;
+    done = true; cleanup(); callback(null);
+  };
+
+  timer = setTimeout(function() {
+    if (done) return;
+    done = true; cleanup(); callback(null);
+  }, timeoutMs);
+
+  document.body.appendChild(script);
+}
+
+// ============ 行情获取 ============
+function fetchQuote(mkt, code, callback) {
+  var secid = mkt + '.' + code;
+  var fields = 'f43,f44,f45,f46,f47,f48,f57,f58,f60,f168,f169,f170';
+  var url = 'https://push2.eastmoney.com/api/qt/stock/get?secid=' + secid + '&fields=' + fields;
+  jsonpFetch(url, function(resp) {
+    if (resp && resp.data) callback(resp.data);
+    else callback(null);
+  });
+}
+
+function fetchRealQuote() {
+  var open = updateMarketStatus();
+  if (!open && futuresPrice > 0) return;
+
+  fetchQuote(currentMkt, currentContract, function(data) {
+    var dsEl = document.getElementById('dataSource');
+    if (!data) {
+      dsEl.textContent = '获取失败'; dsEl.className = 'badge badge-err';
+      if (!futuresPrice) document.getElementById('futuresPrice').textContent = '获取失败';
+      return;
+    }
+    dsEl.textContent = '真实行情·东方财富'; dsEl.className = 'badge badge-ok';
+
+    futuresPrice = data.f43;
+    var c = { price: data.f43, open: data.f46, high: data.f44, low: data.f45,
+              preClose: data.f60 || data.f48, volume: data.f47, change: data.f169,
+              changePct: data.f170, name: data.f58 };
+    currentName = c.name || currentName;
+
+    if (priceHistory.length === 0 || priceHistory[priceHistory.length-1] !== futuresPrice) {
+      priceHistory.push(futuresPrice);
+    }
+    if (priceHistory.length > 120) priceHistory.shift();
+
+    if (klineData && klineData.length > 0) {
+      updateLatestKlineCandle(futuresPrice, c.high, c.low, c.volume);
+    }
+
+    updateFuturesDisplay(c);
+    calculateSignals();
+    updateTabPrices();
+  });
+}
+
+function updateFuturesDisplay(c) {
+  var change = c.change !== undefined ? c.change : (c.preClose ? futuresPrice - c.preClose : 0);
+  var pct = c.changePct !== undefined ? c.changePct / 100 : (c.preClose ? change / c.preClose * 100 : 0);
+  var cls = change >= 0 ? 'up' : 'down';
+
+  document.getElementById('futuresPrice').textContent = futuresPrice.toFixed(0);
+  document.getElementById('futuresPrice').className = 'big-number ' + cls;
+  document.getElementById('futuresChange').textContent = (change >= 0 ? '+' : '') + change.toFixed(0) + ' (' + (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%)';
+  document.getElementById('futuresChange').className = 'change ' + cls;
+  document.getElementById('openPrice').textContent = c.open || '--';
+  document.getElementById('highPrice').textContent = c.high || '--';
+  document.getElementById('lowPrice').textContent = c.low || '--';
+  document.getElementById('preClose').textContent = c.preClose || '--';
+  document.getElementById('volume').textContent = c.volume ? c.volume.toLocaleString() : '--';
+  document.getElementById('quoteTitle').textContent = '实时行情 · ' + (c.name || currentContract);
+}
+
+// ============ K线数据 ============
+function fetchKlineData(mkt, code, callback) {
+  var now = new Date();
+  var end = now.getFullYear() + pad2(now.getMonth()+1) + pad2(now.getDate());
+  var begDate = new Date(now.getTime() - 45*86400000);
+  var beg = begDate.getFullYear() + pad2(begDate.getMonth()+1) + pad2(begDate.getDate());
+  var secid = mkt + '.' + code;
+  var url = 'https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=' + secid
+    + '&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57'
+    + '&klt=101&fqt=1&beg=' + beg + '&end=' + end
+    + '&ut=fa5fd1943c7b386f172d6893dbfba10b&lmt=30';
+  jsonpFetch(url, function(resp) {
+    if (resp && resp.data && resp.data.klines) callback(resp.data.klines);
+    else callback(null);
+  }, 10000);
+}
+
+function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+function initKlineChart() {
+  var dom = document.getElementById('klineChart');
+  if (klineChart) klineChart.dispose();
+  klineChart = echarts.init(dom);
+}
+
+function updateKlineChart(rawKlines) {
+  if (!rawKlines || rawKlines.length === 0) {
+    document.getElementById('klineBadge').textContent = '无数据';
+    document.getElementById('klineBadge').className = 'badge badge-err';
+    return;
+  }
+  var klines = rawKlines.slice(-15);
+  var dates = [], ohlc = [], volumes = [];
+  var ma5 = [];
+
+  klines.forEach(function(k) {
+    var parts = k.split(',');
+    var dt = parts[0], o = parseFloat(parts[1]), c = parseFloat(parts[2]);
+    var h = parseFloat(parts[3]), l = parseFloat(parts[4]), v = parseFloat(parts[5]);
+    dates.push(dt.substring(5)); // MM-DD
+    ohlc.push([o, c, l, h]);
+    volumes.push(v);
+  });
+
+  for (var i = 0; i < ohlc.length; i++) {
+    if (i < 4) { ma5.push('-'); continue; }
+    var sum = 0;
+    for (var j = i-4; j <= i; j++) sum += ohlc[j][1];
+    ma5.push((sum / 5).toFixed(0));
+  }
+
+  var isMobile = window.innerWidth < 600;
+  var option = {
+    tooltip: { trigger: 'axis', axisPointer: { type: 'cross' },
+      formatter: function(params) {
+        var d = params[0]; if (!d) return '';
+        var idx = d.dataIndex, k = klines[idx].split(',');
+        return '<strong>' + k[0] + '</strong><br/>开盘：' + k[1] + '&nbsp;&nbsp;收盘：' + k[2]
+          + '<br/>最高：' + k[3] + '&nbsp;&nbsp;最低：' + k[4]
+          + '<br/>成交量：' + Number(k[5]).toLocaleString() + ' 手';
+      }
+    },
+    axisPointer: { link: [{ xAxisIndex: 'all' }] },
+    grid: [
+      { left: isMobile ? '12%' : '8%', right: isMobile ? '2%' : '3%', top: '5%', height: '55%' },
+      { left: isMobile ? '12%' : '8%', right: isMobile ? '2%' : '3%', top: '68%', height: '22%' }
+    ],
+    xAxis: [
+      { type: 'category', data: dates, gridIndex: 0, axisLabel: { fontSize: isMobile ? 9 : 10 }, axisLine: { onZero: false } },
+      { type: 'category', data: dates, gridIndex: 1, axisLabel: { show: false }, axisLine: { onZero: false } }
+    ],
+    yAxis: [
+      { scale: true, gridIndex: 0, axisLabel: { fontSize: isMobile ? 9 : 10 }, splitNumber: isMobile ? 3 : 5 },
+      { scale: true, gridIndex: 1, axisLabel: { fontSize: isMobile ? 8 : 9 }, splitNumber: 3 }
+    ],
+    series: [
+      { name: 'K线', type: 'candlestick', data: ohlc,
+        itemStyle: { color: '#ef4444', color0: '#22c55e', borderColor: '#ef4444', borderColor0: '#22c55e' },
+        xAxisIndex: 0, yAxisIndex: 0 },
+      { name: 'MA5', type: 'line', data: ma5,
+        smooth: true, lineStyle: { width: 1.5, color: '#f59e0b' }, symbol: 'none',
+        xAxisIndex: 0, yAxisIndex: 0 },
+      { name: '成交量', type: 'bar', data: volumes, xAxisIndex: 1, yAxisIndex: 1,
+        itemStyle: { color: function(p) {
+          var o = ohlc[p.dataIndex][0], c = ohlc[p.dataIndex][1];
+          return c >= o ? '#ef4444' : '#22c55e';
+        }}
+      }
+    ]
+  };
+
+  klineChart.setOption(option, true);
+  document.getElementById('klineBadge').textContent = klines.length + '日';
+  document.getElementById('klineBadge').className = 'badge badge-ok';
+}
+
+function updateLatestKlineCandle(price, high, low, volume) {
+  if (!klineData || klineData.length === 0) return;
+  var lastIdx = klineData.length - 1;
+  var lastStr = klineData[lastIdx];
+  var parts = lastStr.split(',');
+  var today = new Date();
+  var todayStr = today.getFullYear() + '-' + pad2(today.getMonth()+1) + '-' + pad2(today.getDate());
+  if (parts[0] !== todayStr) return;
+  parts[2] = price.toFixed(0);
+  if (high !== undefined && high > parseFloat(parts[3])) parts[3] = high.toFixed(0);
+  if (low !== undefined && low < parseFloat(parts[4])) parts[4] = low.toFixed(0);
+  if (volume !== undefined) parts[5] = volume.toFixed(0);
+  klineData[lastIdx] = parts.join(',');
+  updateKlineChart(klineData);
+}
+
+// ============ 分型检测 ============
+function detectFractal(prices) {
+  if (!prices || prices.length < 5) return { type: 'none', score: 0, text: '数据不足' };
+  var p = prices.slice(-5);
+  if (p.length < 5) return { type: 'none', score: 0, text: '数据不足' };
+  var top = p[1] < p[2] && p[2] > p[3] && p[0] < p[2] && p[2] > p[4];
+  var bottom = p[1] > p[2] && p[2] < p[3] && p[0] > p[2] && p[2] < p[4];
+  if (top) return { type: 'top', score: 2, text: '顶分型（做空信号）' };
+  if (bottom) return { type: 'bottom', score: -2, text: '底分型（做多信号）' };
+  return { type: 'none', score: 0, text: '无明显分型' };
+}
+
+// ============ 信号计算 ============
+function getSpotMid() {
+  var c = findContract(currentContract, currentMkt);
+  if (c && typeof c.spot === 'number') return c.spot;
+  var v = document.getElementById('spotInput').value;
+  return parseFloat(v) || 5000;
+}
+
+function getSpotDataAge() {
+  if (spotPriceUpdateTime) {
+    return { source: '生意社(自动)', time: spotPriceUpdateTime };
+  }
+  var c = findContract(currentContract, currentMkt);
+  if (c && c.spotSource === '生意社') {
+    return { source: '生意社', time: c.spotUpdateTime || '未知' };
+  }
+  return { source: '手动/默认', time: null };
+}
+
+function calculateSignals() {
+  var c = findContract(currentContract, currentMkt);
+  if (!c) { ensureContractDefaults(c = myContracts[0]); }
+
+  var spot = getSpotMid();
+  var basis = futuresPrice - spot;
+  var basisScore = 0, basisText = '平水';
+  if (basis > 200) { basisScore = 2; basisText = '高升水'; }
+  else if (basis > 100) { basisScore = 1; basisText = '轻度升水'; }
+  else if (basis < -200) { basisScore = -2; basisText = '深贴水'; }
+  else if (basis < -100) { basisScore = -1; basisText = '轻度贴水'; }
+
+  // 同步UI到合约数据
+  c.inventory = document.getElementById('inventoryInput').value;
+  c.profit = document.getElementById('profitInput').value;
+
+  var invSel = c.inventory;
+  var inventoryScore = 0, inventoryText = '正常';
+  if (invSel === 'high') { inventoryScore = 2; inventoryText = '高库存'; }
+  else if (invSel === 'low') { inventoryScore = -2; inventoryText = '低库存'; }
+
+  var profitSel = c.profit;
+  var profitScore = 0, profitText = '正常';
+  if (profitSel === 'high') { profitScore = 2; profitText = '高利润'; }
+  else if (profitSel === 'low') { profitScore = -2; profitText = '低利润/亏损'; }
+
+  var fractal = detectFractal(priceHistory);
+  var totalScore = basisScore + inventoryScore + profitScore + fractal.score;
+
+  document.getElementById('basisVal').textContent = (basis > 0 ? '+' : '') + basis.toFixed(0) + ' 元/吨';
+  document.getElementById('basisVal').className = 'factor-val ' + (basis >= 0 ? 'up' : 'down');
+  document.getElementById('basisScore').textContent = basisText + '（' + (basisScore > 0 ? '+' : '') + basisScore + '分）';
+  document.getElementById('inventoryVal').textContent = inventoryText;
+  document.getElementById('inventoryScore').textContent = (inventoryScore > 0 ? '+' : '') + inventoryScore + '分';
+  document.getElementById('profitVal').textContent = profitText;
+  document.getElementById('profitScore').textContent = (profitScore > 0 ? '+' : '') + profitScore + '分';
+  document.getElementById('fractalVal').textContent = fractal.text;
+  document.getElementById('fractalScore').textContent = (fractal.score > 0 ? '+' : '') + fractal.score + '分';
+
+  updateOverallSignal(totalScore);
+
+  // 自动保存
+  saveContracts(myContracts);
+}
+
+function updateOverallSignal(score) {
+  var el = document.getElementById('overallSignal');
+  var scoreEl = document.getElementById('scoreDisplay');
+  var marker = document.getElementById('scoreMarker');
+  scoreEl.textContent = (score > 0 ? '+' : '') + score;
+
+  var text = '', cls = '';
+  if (score <= -5) { text = '强烈做多'; cls = 'signal-strong-long'; }
+  else if (score <= -3) { text = '择机做多'; cls = 'signal-long'; }
+  else if (score >= 5) { text = '强烈做空'; cls = 'signal-strong-short'; }
+  else if (score >= 3) { text = '择机做空'; cls = 'signal-short'; }
+  else { text = '观望'; cls = 'signal-neutral'; }
+
+  el.textContent = text; el.className = 'signal-pill ' + cls;
+  var percent = Math.max(0, Math.min(100, (score + 8) / 16 * 100));
+  marker.style.left = percent + '%';
+}
+
+// ============ 替代品监控 ============
+function updateSubstitution() {
+  var white = parseFloat(document.getElementById('mainSpotInput').value) || 5200;
+  var starch = parseFloat(document.getElementById('altSpotInput').value) || 3600;
+  var spread = white - starch;
+  document.getElementById('sugarSpread').textContent = spread;
+  var warn = document.getElementById('substitutionWarning');
+  if (spread > 1500) {
+    warn.innerHTML = '<span class="warn">⚠️ 价差超过1500元，替代需求较强，利空</span>';
+  } else if (spread > 1000) {
+    warn.innerHTML = '<span class="warn">⚡ 价差较大，存在替代压力</span>';
+  } else {
+    warn.innerHTML = '<span style="color:var(--down);font-weight:600;">✅ 价差较小，替代压力不大</span>';
+  }
+}
+
+function checkSugarSubstitution() {
+  var isSugar = currentContract.indexOf('SR') === 0;
+  var card = document.getElementById('substitutionCard');
+  if (isSugar) {
+    card.style.display = '';
+    document.getElementById('substitutionNote').textContent = '文档提示：玉米跌→淀粉糖跌→替代白糖→白糖需求降→白糖跌。价差 > 1500 元/吨时终端大量改用淀粉糖。';
+    document.getElementById('mainSpotInput').value = getSpotMid();
+    updateSubstitution();
+  } else {
+    card.style.display = 'none';
+  }
+}
+
+// ============ 交易日志 ============
+function addLog(text) {
+  var input = document.getElementById('logInput');
+  var msg = text || input.value.trim();
+  if (!msg) return;
+  if (!text) input.value = '';
+  var list = document.getElementById('logList');
+  var div = document.createElement('div');
+  div.className = 'log-entry';
+  var time = new Date().toLocaleString('zh-CN');
+  div.innerHTML = '<div class="log-time">' + time + '</div><div>' + msg + '</div>';
+  list.insertBefore(div, list.firstChild);
+  var logs = JSON.parse(localStorage.getItem('futures_logs') || '[]');
+  logs.unshift({ time: time, msg: msg });
+  localStorage.setItem('futures_logs', JSON.stringify(logs.slice(0, 100)));
+}
+
+function loadLogs() {
+  var logs = JSON.parse(localStorage.getItem('futures_logs') || '[]');
+  var list = document.getElementById('logList');
+  logs.forEach(function(l) {
+    var div = document.createElement('div');
+    div.className = 'log-entry';
+    div.innerHTML = '<div class="log-time">' + l.time + '</div><div>' + l.msg + '</div>';
+    list.appendChild(div);
+  });
+}
+
+function clearLogs() {
+  if (!confirm('确定清空所有交易记录？')) return;
+  localStorage.removeItem('futures_logs');
+  document.getElementById('logList').innerHTML = '';
+  addLog('已清空交易记录');
+}
+
+function applySettings() {
+  saveContractSettings();
+  calculateSignals();
+  checkSugarSubstitution();
+  addLog('已保存 ' + currentName + ' 的基本面设置');
+}
+
+// ============ Tab 管理 ============
+function renderTabs() {
+  var bar = document.getElementById('tabBar');
+  var html = '';
+  myContracts.forEach(function(c) {
+    var active = (c.code === currentContract && c.mkt === currentMkt) ? ' active' : '';
+    html += '<div class="tab' + active + '" onclick="switchContract(\'' + c.code + '\',' + c.mkt + ')">';
+    html += '<span>' + c.name + '</span>';
+    html += '<span class="remove" onclick="event.stopPropagation();removeContract(\'' + c.code + '\',' + c.mkt + ')">×</span>';
+    html += '</div>';
+  });
+  bar.innerHTML = html;
+}
+
+function switchContract(code, mkt) {
+  if (code === currentContract && mkt === currentMkt) return;
+  currentContract = code; currentMkt = mkt;
+  var c = findContract(code, mkt);
+  currentName = c ? c.name : code;
+  priceHistory = []; klineData = [];
+
+  // 加载该合约专属的现货/库存/利润设置到UI
+  loadContractSettings(c);
+
+  document.getElementById('futuresPrice').textContent = '加载中...';
+  document.getElementById('futuresChange').textContent = '';
+  document.getElementById('dataSource').textContent = '连接中...';
+  document.getElementById('dataSource').className = 'badge badge-info';
+  document.getElementById('quoteTitle').textContent = '实时行情 · ' + currentName;
+
+  renderTabs(); checkSugarSubstitution();
+
+  fetchRealQuote();
+  fetchKlineData(currentMkt, currentContract, function(klines) {
+    klineData = klines;
+    updateKlineChart(klines);
+    if (klines && klines.length > 0) {
+      klines.forEach(function(k) {
+        var parts = k.split(',');
+        priceHistory.push(parseFloat(parts[2]));
+      });
+      if (priceHistory.length > 120) priceHistory = priceHistory.slice(-120);
+    }
+  });
+
+  addLog('切换合约至 ' + currentName);
+}
+
+// 将当前合约的现货/库存/利润设置加载到UI输入框
+function loadContractSettings(c) {
+  if (!c) return;
+  ensureContractDefaults(c);
+  document.getElementById('spotInput').value = c.spot;
+  document.getElementById('spotUnit').textContent = '(' + (c.spotUnit || '元/吨') + ')';
+  document.getElementById('inventoryInput').value = c.inventory || 'normal';
+  document.getElementById('profitInput').value = c.profit || 'normal';
+  document.getElementById('settingsContract').textContent = c.name + ' · ' + (c.varietyName || getVarietyDefault(c.code).name);
+  // 显示现货价数据来源
+  var age = getSpotDataAge();
+  var srcBadge = document.getElementById('spotSource');
+  var hintEl = document.getElementById('spotUpdateHint');
+  if (age.source.indexOf('生意社') > -1) {
+    srcBadge.textContent = age.source;
+    srcBadge.className = 'badge badge-ok';
+    hintEl.textContent = ' 数据更新时间: ' + (age.time || '未知') + '。每日自动更新。';
+  } else {
+    srcBadge.textContent = '';
+    srcBadge.className = 'badge';
+    hintEl.textContent = '';
+  }
+}
+
+// 从UI输入框读取并保存当前合约的现货/库存/利润
+function saveContractSettings() {
+  var c = findContract(currentContract, currentMkt);
+  if (!c) return;
+  c.spot = parseFloat(document.getElementById('spotInput').value) || 5000;
+  c.inventory = document.getElementById('inventoryInput').value;
+  c.profit = document.getElementById('profitInput').value;
+  saveContracts(myContracts);
+}
+
+function findContract(code, mkt) {
+  for (var i = 0; i < myContracts.length; i++) {
+    if (myContracts[i].code === code && myContracts[i].mkt === mkt) return myContracts[i];
+  }
+  return null;
+}
+
+function addContract(code, name, mkt) {
+  if (findContract(code, mkt)) { switchContract(code, mkt); return; }
+  var c = { code: code, name: name, mkt: mkt };
+  ensureContractDefaults(c);
+  myContracts.push(c);
+  saveContracts(myContracts);
+  renderTabs();
+  switchContract(code, mkt);
+  addLog('添加合约 ' + name + '，现货参考价 ' + c.spot + ' 元');
+}
+
+function removeContract(code, mkt) {
+  if (myContracts.length <= 1) { alert('至少保留一个合约'); return; }
+  myContracts = myContracts.filter(function(c) { return !(c.code === code && c.mkt === mkt); });
+  saveContracts(myContracts); renderTabs();
+  if (code === currentContract && mkt === currentMkt) {
+    switchContract(myContracts[0].code, myContracts[0].mkt);
+  }
+  addLog('移除合约 ' + code);
+}
+
+function updateTabPrices() {}
+
+// ============ 搜索 ============
+var searchTimer = null;
+var searchJsonpCounter = 0;
+
+document.getElementById('searchInput').addEventListener('input', function() {
+  var q = this.value.trim();
+  var dd = document.getElementById('searchDropdown');
+  if (q.length < 1) { dd.classList.remove('show'); return; }
+  if (searchTimer) clearTimeout(searchTimer);
+  searchTimer = setTimeout(function() { doSearch(q); }, 300);
+});
+
+document.getElementById('searchInput').addEventListener('focus', function() {
+  var q = this.value.trim();
+  if (q.length >= 1) {
+    var dd = document.getElementById('searchDropdown');
+    if (dd.children.length > 0) dd.classList.add('show');
+  }
+});
+
+document.addEventListener('click', function(e) {
+  var wrap = document.querySelector('.search-wrap');
+  if (wrap && !wrap.contains(e.target)) {
+    document.getElementById('searchDropdown').classList.remove('show');
+  }
+});
+
+function doSearch(query) {
+  var searchId = ++searchJsonpCounter;
+  var url = 'https://searchapi.eastmoney.com/api/suggest/get?input='
+    + encodeURIComponent(query)
+    + '&type=14&token=D43BF722C8E33BDC906FB84D85E326E8&count=20';
+
+  jsonpFetch(url, function(resp) {
+    if (searchId !== searchJsonpCounter) return;
+    var dd = document.getElementById('searchDropdown');
+    if (!resp || !resp.QuotationCodeTable || !resp.QuotationCodeTable.Data) {
+      dd.innerHTML = '<div class="search-no-result">未找到结果</div>';
+      dd.classList.add('show'); return;
+    }
+    var futuresOnly = resp.QuotationCodeTable.Data.filter(function(item) {
+      return item.Classify === 'Futures' && item.SecurityType === '12';
+    });
+    if (futuresOnly.length === 0) {
+      dd.innerHTML = '<div class="search-no-result">未找到期货合约，请尝试合约代码（如SR609、rb2610）</div>';
+      dd.classList.add('show'); return;
+    }
+    var html = '';
+    var mktNames = { '113': '上期所', '114': '大商所', '115': '郑商所', '8': '中金所' };
+    futuresOnly.slice(0, 8).forEach(function(item) {
+      var mktLabel = mktNames[item.MktNum] || '期货';
+      var added = findContract(item.Code, parseInt(item.MktNum)) ? ' ✅已添加' : '';
+      html += '<div class="search-item" onclick="addContract(\'' + item.Code + '\',\'' + item.Name + '\',' + item.MktNum + ');document.getElementById(\'searchDropdown\').classList.remove(\'show\');document.getElementById(\'searchInput\').value=\'\';">';
+      html += '<span><span class="code">' + item.Code + '</span> ' + item.Name + added + '</span>';
+      html += '<span class="mkt">' + mktLabel + '</span>';
+      html += '</div>';
+    });
+    dd.innerHTML = html;
+    dd.classList.add('show');
+  });
+}
+
+// ============ 初始化 ============
+var lastMarketState = false;
+
+window.onload = function() {
+  initKlineChart();
+  renderTabs();
+  loadLogs();
+
+  // 先尝试从生意社加载最新现货价格
+  loadSpotPrices();
+
+  // 加载首个合约的现货/库存/利润设置
+  var firstContract = findContract(currentContract, currentMkt);
+  if (firstContract) loadContractSettings(firstContract);
+
+  updateMarketStatus();
+  lastMarketState = isMarketOpen().open;
+  checkSugarSubstitution();
+
+  fetchRealQuote();
+  fetchKlineData(currentMkt, currentContract, function(klines) {
+    klineData = klines;
+    updateKlineChart(klines);
+    if (klines && klines.length > 0) {
+      klines.forEach(function(k) {
+        var parts = k.split(',');
+        priceHistory.push(parseFloat(parts[2]));
+      });
+      if (priceHistory.length > 120) priceHistory = priceHistory.slice(-120);
+      calculateSignals();
+    }
+  });
+
+  setInterval(function() {
+    var open = updateMarketStatus();
+    if (open !== lastMarketState) {
+      if (open) { fetchRealQuote(); addLog('市场开市，开始实时获取行情'); }
+      else { addLog('市场收盘，价格静止'); }
+      lastMarketState = open;
+    }
+  }, 1000);
+
+  setInterval(fetchRealQuote, 10000);
+
+  setInterval(function() {
+    var st = isMarketOpen();
+    if (st.open) {
+      fetchKlineData(currentMkt, currentContract, function(klines) {
+        klineData = klines;
+        updateKlineChart(klines);
+      });
+    }
+  }, 300000);
+
+  var st = isMarketOpen();
+  addLog('系统启动，当前合约 ' + currentName + '。' + (st.open ? '开市中（' + st.session + '）' : '休市（' + st.reason + '）') + '。手机电脑都能用，支持搜索添加任意期货合约。');
+};
+
+window.addEventListener('resize', function() {
+  if (klineChart) klineChart.resize();
+});
+</script>
+</body>
+</html>
