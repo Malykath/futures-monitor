@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-title" content="期货盯盘">
   <link rel="apple-touch-icon" href="icon.svg">
   <meta name="theme-color" content="#1e40af">
-  <meta name="description" content="基于概率思维与逻辑思维交易系统，支持任意期货合约实时行情、15日K线图、资金管理、仓单监控、产业链分析。">
+  <meta name="description" content="基于概率思维与逻辑思维交易系统，支持任意期货合约实时行情、15日K线图、仓单监控、产业链分析。">
   <link rel="manifest" href="manifest.json">
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
   <style>
@@ -99,13 +99,6 @@
     .log-time { color:var(--muted); font-size:0.7rem; }
     .warn { color:var(--neutral); font-weight:600; }
 
-    /* ====== New Module Styles ====== */
-    /* 资金管理 */
-    .money-row { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px dashed var(--border); font-size:0.82rem; }
-    .money-row:last-child { border-bottom:none; }
-    .money-val { font-weight:700; }
-    .money-highlight { color:var(--primary); font-size:1.1rem; }
-
     /* 离场信号 */
     .exit-item { padding:8px; border-radius:8px; margin-bottom:6px; font-size:0.82rem; display:flex; align-items:center; gap:8px; }
     .exit-item.active { border:1px solid; }
@@ -124,6 +117,9 @@
     /* 仓单 */
     .wh-row { display:flex; justify-content:space-between; font-size:0.82rem; padding:5px 0; border-bottom:1px dashed var(--border); }
     .wh-row:last-child { border-bottom:none; }
+    .wh-num { font-size:1.3rem; font-weight:700; }
+    .wh-change-up { color:#ef4444; }
+    .wh-change-down { color:#22c55e; }
 
     /* 库存周期象限图 */
     .quadrant-wrap { display:flex; gap:8px; align-items:center; margin-top:8px; }
@@ -142,7 +138,7 @@
     .pwa-toast button { background:var(--primary); color:#fff; border:none; padding:4px 12px; border-radius:14px; font-size:0.8rem; cursor:pointer; }
     .pwa-toast .close { background:transparent; color:#9ca3af; padding:0; font-size:1.1rem; margin-left:4px; }
 
-    @media (max-width:1024px) { .grid { grid-template-columns:1fr 1fr; gap:10px; } .card { padding:12px; } .card.wide { grid-column:span 2; } .kline-container { height:320px; } .big-number { font-size:1.6rem; } header { gap:8px; } header h1 { font-size:1.1rem; } .countdown-num { font-size:1.6rem; } }
+    @media (max-width:1024px) { .grid { grid-template-columns:1fr 1fr; gap:10px; } .card { padding:12px; } .card.wide { grid-column:span 2; } .kline-container { height:320px; } .big-number { font-size:1.6rem; } header { gap:8px; } header h1 { font-size:1.1rem; } .countdown-num { font-size:1.6rem; } .wh-num { font-size:1.1rem; } }
     @media (max-width:600px) {
       body { padding:8px; } .container { max-width:100%; }
       .grid { grid-template-columns:1fr; gap:8px; } .card.wide { grid-column:span 1; }
@@ -168,9 +164,10 @@
       .install-banner { font-size:0.85rem; padding:10px 14px; border-radius:8px; }
       .log-entry { font-size:0.82rem; }
       .countdown-num { font-size:1.4rem; }
+      .wh-num { font-size:1.1rem; }
       .quadrant-wrap { flex-direction:column; align-items:flex-start; }
     }
-    @media (max-width:380px) { .big-number { font-size:1.5rem; } .kline-container { height:220px; } .tab { padding:6px 10px; font-size:0.78rem; } header h1 { font-size:0.95rem; } .info-row { font-size:0.72rem; } .legend { font-size:0.62rem; } .countdown-num { font-size:1.2rem; } }
+    @media (max-width:380px) { .big-number { font-size:1.5rem; } .kline-container { height:220px; } .tab { padding:6px 10px; font-size:0.78rem; } header h1 { font-size:0.95rem; } .info-row { font-size:0.72rem; } .legend { font-size:0.62rem; } .countdown-num { font-size:1.2rem; } .wh-num { font-size:1rem; } }
   </style>
 </head>
 <body>
@@ -179,7 +176,7 @@
   <header>
     <div>
       <h1>📊 期货实时盯盘预测系统</h1>
-      <div class="subtitle">八大模块：行情 · 四因子 · 资金管理 · 离场信号 · 交割仓单 · 产业链 · 互补品 · 库存周期</div>
+      <div class="subtitle">七大模块：行情 · 四因子 · 离场信号 · 持仓量 · 交割仓单 · 产业链 · 库存周期</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
       <button class="install-btn" id="installBtn" onclick="installPWA()">📲 安装应用</button>
@@ -227,39 +224,17 @@
       <div class="factor-row"><div><div class="factor-name">④ 分型信号</div><div class="factor-score">近5根K线形态</div></div><div style="text-align:right;"><div class="factor-val" id="fractalVal">--</div><div class="factor-score" id="fractalScore">--</div></div></div>
     </div>
 
-    <!-- 5. 资金管理计算器（新） -->
-    <div class="card">
-      <h2>💰 资金管理计算器</h2>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <div class="input-group"><label>账户资金(万元)</label><input type="number" id="capitalInput" value="10" min="1" step="0.1" inputmode="numeric" onchange="updateMoneyManagement()"></div>
-        <div class="input-group"><label>预估胜率(%)</label><input type="number" id="winRateInput" value="45" min="1" max="99" inputmode="numeric" onchange="updateMoneyManagement()"></div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <div class="input-group"><label>盈亏比</label><input type="number" id="rrInput" value="2" min="0.5" step="0.1" inputmode="numeric" onchange="updateMoneyManagement()"></div>
-        <div class="input-group"><label>合约乘数</label><input type="number" id="multiplierInput" value="10" min="1" inputmode="numeric" onchange="updateMoneyManagement()"></div>
-      </div>
-      <button onclick="updateMoneyManagement()">计算</button>
-      <div style="margin-top:10px;">
-        <div class="money-row"><span>凯利最优仓位</span><span class="money-val" id="kellyPct">--</span></div>
-        <div class="money-row"><span>保守仓位(半凯利)</span><span class="money-val money-highlight" id="halfKellyPct">--</span></div>
-        <div class="money-row"><span>2%法则单笔止损</span><span class="money-val" id="maxLoss2pct" style="color:#ef4444;">--</span></div>
-        <div class="money-row"><span>6%法则月度止损</span><span class="money-val" id="maxLoss6pct" style="color:#ef4444;">--</span></div>
-        <div class="money-row"><span>建议开仓手数</span><span class="money-val money-highlight" id="suggestedLots">--</span></div>
-      </div>
-      <p class="note">凯利公式：f = (p×b - (1-p)) / b，p=胜率，b=盈亏比。建议用半凯利更保守。</p>
-    </div>
-
-    <!-- 6. 离场信号提示（新） -->
+    <!-- 5. 离场信号提示 -->
     <div class="card">
       <h2>🚪 离场信号监控</h2>
       <div class="exit-item" id="exitBasis"><span class="exit-dot" style="background:#9ca3af;"></span><span>基差修复：监控基差向零回归</span></div>
       <div class="exit-item" id="exitStructure"><span class="exit-dot" style="background:#9ca3af;"></span><span>结构转换：升贴水结构是否反转</span></div>
       <div class="exit-item" id="exitOI"><span class="exit-dot" style="background:#9ca3af;"></span><span>持仓下降：持仓量是否大幅缩减</span></div>
       <div class="exit-item" id="exitTech"><span class="exit-dot" style="background:#9ca3af;"></span><span>技术破位：分型反转/均线破位</span></div>
-      <p class="note">文档提示：离场比入场更重要。基差修复50%以上、升贴水逆转、持仓大降超20%都可能触发离场。</p>
+      <p class="note">文档提示：离场比入场更重要。基差修复50%以上、升贴水逆转��持仓大降超20%都可能触发离场。</p>
     </div>
 
-    <!-- 7. 持仓量分析（新） -->
+    <!-- 6. 持仓量分析 -->
     <div class="card">
       <h2>📊 持仓量分析</h2>
       <div class="factor-row"><span>当前持仓量</span><span class="factor-val" id="oiCurrent">--</span></div>
@@ -269,7 +244,7 @@
       <p class="note" id="oiNote">持仓量大幅下降（>20%）往往预示行情尾声，是重要的离场信号。</p>
     </div>
 
-    <!-- 8. 交割倒计时（新） -->
+    <!-- 7. 交割倒计时 -->
     <div class="card">
       <h2>⏰ 交割倒计时</h2>
       <div id="deliveryInfo">
@@ -279,40 +254,34 @@
       <div class="note" style="margin-top:4px;" id="deliveryNote">自然人应在最后交易日前平仓。临近交割月注意流动性下降和保证金提高。</div>
     </div>
 
-    <!-- 9. 仓单监控（新） -->
+    <!-- 8. 仓单监控（全自动） -->
     <div class="card">
-      <h2>📋 仓单监控</h2>
-      <div class="input-group"><label>注册仓单量(手)</label><input type="number" id="whInput" value="" placeholder="手动输入或自动获取" inputmode="numeric" onchange="updateWarehouseReceipts()"></div>
-      <div class="input-group"><label>前一日仓单量(手)</label><input type="number" id="whPrevInput" value="" placeholder="对比判断增减方向" inputmode="numeric" onchange="updateWarehouseReceipts()"></div>
-      <div style="margin-top:8px;">
-        <div class="wh-row"><span>仓单变化</span><span class="factor-val" id="whChange">--</span></div>
-        <div class="wh-row"><span>信号判断</span><span class="factor-val" id="whSignal">--</span></div>
-      </div>
-      <p class="note">仓单增加→实货流入→套保压力大→偏空；仓单减少→实货流出→偏多。数据可在交易所官网查询。</p>
+      <h2>📋 仓单监控 <span id="whSourceBadge" class="badge" style="font-size:0.65rem;"></span></h2>
+      <div class="wh-row"><span>注册仓单量</span><span class="wh-num" id="whCurrent">加载中...</span></div>
+      <div class="wh-row"><span>较前日变化</span><span class="factor-val" id="whChange">--</span></div>
+      <div class="wh-row"><span>更新日期</span><span class="factor-val" id="whDate">--</span></div>
+      <div class="wh-row"><span>信号判断</span><span class="factor-val" id="whSignal">--</span></div>
+      <p class="note">数据来源：东方财富数据中心（交易所仓单日报）。仓单增加→实货流入→套保压力→偏空；仓单减少→偏多。</p>
     </div>
 
-    <!-- 10. 库存周期分析（新） -->
+    <!-- 9. 库存周期分析（全自动） -->
     <div class="card">
-      <h2>🔄 库存周期定位</h2>
+      <h2>🔄 库存周期定位 <span id="cycleSourceBadge" class="badge" style="font-size:0.65rem;"></span></h2>
       <div class="quadrant-wrap">
         <div class="quadrant-svg" id="stockCycleSvg"></div>
         <div class="quadrant-info">
-          <div><strong>当前阶段：</strong><span id="cyclePhase" style="font-weight:700;">--</span></div>
-          <div id="cycleDesc" style="color:var(--muted);margin-top:4px;">请设置库存与价格趋势</div>
-          <div style="margin-top:8px;display:flex;gap:6px;">
-            <select id="cycleInventory" onchange="updateStockCycle()" style="font-size:0.78rem;padding:4px 8px;border:1px solid var(--border);border-radius:4px;">
-              <option value="">库存趋势</option><option value="up">库存上升</option><option value="down">库存下降</option>
-            </select>
-            <select id="cyclePrice" onchange="updateStockCycle()" style="font-size:0.78rem;padding:4px 8px;border:1px solid var(--border);border-radius:4px;">
-              <option value="">价格趋势</option><option value="up">价格上涨</option><option value="down">价格下跌</option>
-            </select>
+          <div><strong>周期阶段：</strong><span id="cyclePhase" style="font-weight:700;">--</span></div>
+          <div id="cycleDesc" style="color:var(--muted);margin-top:4px;">等待行情数据...</div>
+          <div style="margin-top:4px;font-size:0.72rem;color:var(--muted);">
+            <div>价格趋势：<span id="cyclePriceTrend">--</span>（5日均价对比）</div>
+            <div>仓单趋势：<span id="cycleWHTrend">--</span>（注册仓单变化）</div>
           </div>
         </div>
       </div>
-      <p class="note">四个阶段：主动建库存(库存↑价↓)→被动建库存(库存↑价↑)→主动去库存(库存↓价↑)→被动去库存(库存↓价↓)</p>
+      <p class="note">自动根据5日价格趋势和仓单变化判断库存周期阶段。四阶段：主动建库存→被动建库存→主动去库存→被动去库存。</p>
     </div>
 
-    <!-- 11. 产业链图谱（新） -->
+    <!-- 10. 产业链图谱 -->
     <div class="card">
       <h2>🏭 产业链图谱</h2>
       <div id="chainContainer" style="min-height:180px;display:flex;align-items:center;justify-content:center;">
@@ -320,7 +289,7 @@
       </div>
     </div>
 
-    <!-- 12. 替代品/互补品监控 -->
+    <!-- 11. 替代品/互补品监控 -->
     <div class="card" id="subCompCard" style="display:none;">
       <h2 id="subCompTitle">🔗 替代品/互补品监控</h2>
       <p class="note" id="subCompNote"></p>
@@ -333,7 +302,7 @@
       </div>
     </div>
 
-    <!-- 13. 数据设置 -->
+    <!-- 12. 数据设置 -->
     <div class="card">
       <h2>⚙️ 数据设置 · <span id="settingsContract" style="color:var(--primary);">--</span></h2>
       <div class="input-group"><label>现货均价 <span id="spotUnit">(元/吨)</span> <span id="spotSource" class="badge" style="font-size:0.65rem;"></span></label><input type="number" id="spotInput" value="5200" inputmode="numeric" onchange="saveContractSettings()"><p class="note">切换合约自动匹配。可手动修改。<span id="spotUpdateHint" style="color:var(--muted);"></span></p></div>
@@ -343,7 +312,7 @@
       <button class="green" onclick="fetchRealQuote(true)" style="margin-left:4px;">手动刷新行情</button>
     </div>
 
-    <!-- 14. 交易记录 -->
+    <!-- 13. 交易记录 -->
     <div class="card wide">
       <h2>📝 交易思路记录</h2>
       <div class="input-group"><input type="text" id="logInput" placeholder="记录今日观察或操作思路..." style="width:100%;"></div>
@@ -365,7 +334,7 @@ var deferredPrompt=null;
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js').catch(function(){});});}
 window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferredPrompt=e;document.getElementById('installBtn').classList.add('show');if(window.innerWidth<600)document.getElementById('installBanner').classList.add('show');setTimeout(function(){if(!window.matchMedia('(display-mode:standalone)').matches)document.getElementById('pwaToast').classList.add('show');},5000);});
 window.addEventListener('appinstalled',function(){document.getElementById('installBtn').classList.remove('show');document.getElementById('installBanner').classList.remove('show');document.getElementById('pwaToast').classList.remove('show');deferredPrompt=null;});
-function installPWA(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(function(r){deferredPrompt=null;});}else{if(/iPhone|iPad|iPod/.test(navigator.userAgent))alert('在Safari浏览器中：\n点击底部"分享"按钮→\n向下滑动找到"添加到主屏幕"→\n点击右上角"添加"');else alert('点击浏览器菜单→选择"添加到主屏幕"或"安装应用"');}}
+function installPWA(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(function(r){deferredPrompt=null;});}else{if(/iPhone|iPad|iPod/.test(navigator.userAgent))alert('在Safari浏览器���：\n点击底部"分享"按钮→\n向下滑动找到"添加到主屏幕"→\n点击右上角"添加"');else alert('点击浏览器菜单→选择"添加到主屏幕"或"安装应用"');}}
 if(window.matchMedia('(display-mode:standalone)').matches){document.getElementById('installBtn').classList.remove('show');document.getElementById('installBanner').classList.remove('show');}
 
 // ============ 全局状态 ============
@@ -376,7 +345,7 @@ var spotPriceData=null,spotPriceUpdateTime=null;
 function loadSpotPrices(){
   var xhr=new XMLHttpRequest();
   xhr.open('GET','spot_data.json?_t='+Date.now(),true);xhr.timeout=5000;
-  xhr.onload=function(){if(xhr.status===200){try{var data=JSON.parse(xhr.responseText);if(data&&data.varieties&&Object.keys(data.varieties).length>0){spotPriceData=data;spotPriceUpdateTime=data.update_time;console.log('现货价加载成功:'+data.update_time);refreshAllContractSpotPrices();updateAllModuleViews();addLog('已从生意社加载最新现货价格（'+data.update_time+'）');}}catch(e){console.log('JSON解析失败',e);}}};
+  xhr.onload=function(){if(xhr.status===200){try{var data=JSON.parse(xhr.responseText);if(data&&data.varieties&&Object.keys(data.varieties).length>0){spotPriceData=data;spotPriceUpdateTime=data.update_time;console.log('现货价加载成功:'+data.update_time);refreshAllContractSpotPrices();updateAllModuleViews();}}catch(e){console.log('JSON解析失败',e);}}};
   xhr.onerror=function(){console.log('spot_data.json不可用');};xhr.send();
 }
 function refreshAllContractSpotPrices(){
@@ -421,7 +390,6 @@ function jsonpFetch(url,callback,timeoutMs){timeoutMs=timeoutMs||8000;var cbName
 // ============ 行情获取 ============
 function fetchQuote(mkt,code,callback){
   var secid=mkt+'.'+code;
-  // f161=持仓量, f92=昨持仓, f43=最新价
   var fields='f43,f44,f45,f46,f47,f48,f57,f58,f60,f161,f92,f168,f169,f170';
   jsonpFetch('https://push2.eastmoney.com/api/qt/stock/get?secid='+secid+'&fields='+fields,function(resp){if(resp&&resp.data)callback(resp.data);else callback(null);});
 }
@@ -443,6 +411,7 @@ function applyQuoteData(data,isClosing){
   updateOpenInterest(c);
   updateExitSignals();
   updateTabPrices();
+  updateStockCycleAuto();
 }
 function updateFuturesDisplay(c,isClosing){
   var change=c.change!==undefined?c.change:(c.preClose?futuresPrice-c.preClose:0);
@@ -485,7 +454,7 @@ function updateKlineChart(rawKlines){
     yAxis:[{scale:true,gridIndex:0,axisLabel:{fontSize:isM?9:10},splitNumber:isM?3:5},{scale:true,gridIndex:1,axisLabel:{fontSize:isM?8:9},splitNumber:3}],
     series:[{name:'K线',type:'candlestick',data:ohlc,itemStyle:{color:'#ef4444',color0:'#22c55e',borderColor:'#ef4444',borderColor0:'#22c55e'},xAxisIndex:0,yAxisIndex:0},{name:'MA5',type:'line',data:ma5,smooth:true,lineStyle:{width:1.5,color:'#f59e0b'},symbol:'none',xAxisIndex:0,yAxisIndex:0},{name:'成交量',type:'bar',data:volumes,xAxisIndex:1,yAxisIndex:1,itemStyle:{color:function(p){var o=ohlc[p.dataIndex][0],c=ohlc[p.dataIndex][1];return c>=o?'#ef4444':'#22c55e';}}}]
   },true);
-  document.getElementById('klineBadge').textContent=klines.length+'日';document.getElementById('klineBadge').className='badge badge-ok';
+  document.getElementById('klineBadge').textContent=klines.length+'��';document.getElementById('klineBadge').className='badge badge-ok';
 }
 function updateLatestKlineCandle(price,high,low,volume){
   if(!klineData||klineData.length===0)return;
@@ -534,65 +503,28 @@ function updateOverallSignal(score){
   marker.style.left=Math.max(0,Math.min(100,(score+8)/16*100))+'%';
 }
 
-// ============ 资金管理计算器（新模块1）============
-function updateMoneyManagement(){
-  var capital=parseFloat(document.getElementById('capitalInput').value)||10;
-  var winRate=parseFloat(document.getElementById('winRateInput').value)/100||0.45;
-  var rr=parseFloat(document.getElementById('rrInput').value)||2;
-  var multiplier=parseFloat(document.getElementById('multiplierInput').value)||10;
-  capital*=10000;
-  var kelly=(winRate*rr-(1-winRate))/rr;
-  kelly=Math.max(0,Math.min(kelly,0.5));
-  var halfKelly=kelly/2;
-  var maxLoss2=capital*0.02;
-  var maxLoss6=capital*0.06;
-  var unitRisk=capital*halfKelly;
-  var lots=0;
-  if(futuresPrice>0&&multiplier>0){
-    var stopLossPct=0.03; // 假设3%止损
-    var stopLossAmt=futuresPrice*stopLossPct*multiplier;
-    if(stopLossAmt>0)lots=Math.floor(unitRisk/stopLossAmt);
-  }
-  document.getElementById('kellyPct').textContent=(kelly*100).toFixed(1)+'%';
-  document.getElementById('halfKellyPct').textContent=(halfKelly*100).toFixed(1)+'%';
-  document.getElementById('maxLoss2pct').textContent='¥'+maxLoss2.toLocaleString();
-  document.getElementById('maxLoss6pct').textContent='¥'+maxLoss6.toLocaleString();
-  document.getElementById('suggestedLots').textContent=lots>0?lots+' 手':'待获取行情';
-}
-
-// ============ 离场信号提示（新模块2）============
+// ============ 离场信号提示 ============
 function updateExitSignals(){
   if(futuresPrice<=0)return;
   var spot=getSpotMid(),basis=futuresPrice-spot;
   var exitBasis=document.getElementById('exitBasis'),exitStructure=document.getElementById('exitStructure'),
       exitOI=document.getElementById('exitOI'),exitTech=document.getElementById('exitTech');
-  // 基差修复信号
   var basisAbs=Math.abs(basis),basisPct=basisAbs/Math.max(spot,1)*100;
   if(basisPct<1){exitBasis.className='exit-item exit-safe';exitBasis.innerHTML='<span class="exit-dot" style="background:#22c55e;"></span><span>基差修复：期现价差仅'+basisPct.toFixed(1)+'%（✅接近平水，套利空间收窄）</span>';}
   else if(basisPct<3){exitBasis.className='exit-item exit-watch';exitBasis.innerHTML='<span class="exit-dot" style="background:#f59e0b;"></span><span>基差收窄：期现价差'+basisPct.toFixed(1)+'%（⚠️关注修复趋势）</span>';}
   else{exitBasis.className='exit-item';exitBasis.innerHTML='<span class="exit-dot" style="background:#9ca3af;"></span><span>基差正常：期现价差'+basisPct.toFixed(1)+'%（价差较大，继续持仓）</span>';}
-  // 结构转换信号
   var c=findContract(currentContract,currentMkt);
   var oldBasis=c&&c.oldBasis?c.oldBasis:0;
   if(oldBasis!==0&&((oldBasis>0&&basis<0)||(oldBasis<0&&basis>0))){
     exitStructure.className='exit-item exit-danger active';
     exitStructure.innerHTML='<span class="exit-dot" style="background:#ef4444;"></span><span>结构反转：升贴水方向已逆转！（❗强烈离场信号）</span>';
-  }else{
-    exitStructure.className='exit-item';
-    exitStructure.innerHTML='<span class="exit-dot" style="background:#9ca3af;"></span><span>结构正常：升贴水结构未发生逆转</span>';
-  }
-  // 保存当前基差方向
+  }else{exitStructure.className='exit-item';exitStructure.innerHTML='<span class="exit-dot" style="background:#9ca3af;"></span><span>结构正常：升贴水结构未发生逆转</span>';}
   if(c){c.oldBasis=basis;}
-  // 持仓下降信号（结合持仓量分析）
   var oiCurrent=document.getElementById('oiCurrent').textContent;
   if(oiCurrent.indexOf('↓')>-1||oiCurrent.indexOf('下降')>-1){
     exitOI.className='exit-item exit-danger active';
     exitOI.innerHTML='<span class="exit-dot" style="background:#ef4444;"></span><span>持仓下降：持仓量明显缩减（❗行情可能接近尾声）</span>';
-  }else{
-    exitOI.className='exit-item';
-    exitOI.innerHTML='<span class="exit-dot" style="background:#9ca3af;"></span><span>持仓正常：持仓量没有大幅变化</span>';
-  }
-  // 技术破位信号
+  }else{exitOI.className='exit-item';exitOI.innerHTML='<span class="exit-dot" style="background:#9ca3af;"></span><span>持仓正常：持仓量没有大幅变化</span>';}
   if(priceHistory.length>=5){
     var recent=priceHistory.slice(-5),high5=Math.max.apply(null,recent),low5=Math.min.apply(null,recent);
     var broken=false;
@@ -602,7 +534,7 @@ function updateExitSignals(){
   }
 }
 
-// ============ 持仓量分析（新模块3）============
+// ============ 持仓量分析 ============
 var oiHistory=[];
 function updateOpenInterest(c){
   var oi=c.openInterest||0,preOI=c.preOpenInterest||0,change=oi-preOI,changePct=preOI>0?change/preOI*100:0;
@@ -617,96 +549,170 @@ function updateOpenInterest(c){
   var oi5Day=oiHistory.length>=5?Math.round(oiHistory.slice(-5).reduce(function(a,b){return a+b;},0)/5):0;
   document.getElementById('oi5Day').textContent=oi5Day>0?oi5Day.toLocaleString()+' 手':'数据不足';
   var oiSignal=document.getElementById('oiSignal'),oiNote=document.getElementById('oiNote');
-  if(changePct<-10){oiSignal.textContent='⚠️ 持仓大降（空离场信号）';oiSignal.className='factor-val down';oiNote.textContent='持仓单日下降超10%，空头正大规模离场，行情尾声信号强烈。';}
+  if(changePct<-10){oiSignal.textContent='���️ 持仓大降（空离场信号）';oiSignal.className='factor-val down';oiNote.textContent='持仓单日下降超10%，空头正大规模离场，行情尾声信号强烈。';}
   else if(changePct<-5){oiSignal.textContent='⚡ 持仓下降（关注）';oiSignal.className='factor-val down';oiNote.textContent='持仓下降超5%，可能资金在撤离，继续关注后续变化。';}
   else if(changePct>10){oiSignal.textContent='📈 持仓大增（新资金入场）';oiSignal.className='factor-val up';oiNote.textContent='持仓大幅增加，新资金入场，趋势可能延续或启动。';}
   else if(changePct>5){oiSignal.textContent='↗ 持仓增加';oiSignal.className='factor-val up';oiNote.textContent='持仓温和增加，市场参与度上升。';}
   else{oiSignal.textContent='→ 持仓平稳';oiSignal.className='factor-val';oiNote.textContent='持仓量变化不大，市场处于均衡状态。';}
 }
 
-// ============ 交割倒计时（新模块4）============
+// ============ 交割倒计时 ============
 function updateDeliveryCountdown(){
   var code=currentContract;if(!code)return;
-  // 解析合约代码获取交割月份
-  var m=code.match(/(\d{2})(\d{2})$/); // 最后4位：年+月
+  var m=code.match(/(\d{2})(\d{2})$/);
   if(!m){document.getElementById('deliveryDays').textContent='--';document.getElementById('deliveryLabel').textContent='无法解析合约';return;}
   var year=2000+parseInt(m[1]),month=parseInt(m[2]);
   if(month<1||month>12){document.getElementById('deliveryDays').textContent='--';return;}
-  // 最后交易日：交割月第10个交易日，简化计算为交割月第15个自然日
   var deliveryDate=new Date(year,month-1,15);
-  // 自然人最后交易日：上期所=前月最后一个交易日，郑商所和大商所≈前月15日
   var exchange=getExchange(currentContract,currentMkt);
   var naturalDate;
   if(exchange==='SHFE'){
     naturalDate=new Date(year,month-2,1);
     naturalDate.setMonth(naturalDate.getMonth()+1);
-    naturalDate.setDate(0); // 上月最后一天
+    naturalDate.setDate(0);
   }else{naturalDate=new Date(year,month-1,1);naturalDate.setFullYear(naturalDate.getFullYear(),naturalDate.getMonth()-1,15);}
   var now=new Date(),daysLeft=Math.ceil((deliveryDate-now)/(86400000));
   var naturalDaysLeft=Math.ceil((naturalDate-now)/(86400000));
   var daysEl=document.getElementById('deliveryDays'),labelEl=document.getElementById('deliveryLabel'),noteEl=document.getElementById('deliveryNote');
   daysEl.textContent=daysLeft>0?daysLeft+'天':'已到期';
   if(daysLeft<=0){daysEl.className='countdown-num countdown-urgent';labelEl.textContent='合约已到期，请勿持有！';}
-  else if(daysLeft<=30){daysEl.className='countdown-num countdown-urgent';labelEl.textContent='⚠️ 距交割不足30天！';noteEl.textContent='自然人应在'+naturalDate.getMonth()+1+'月'+naturalDate.getDate()+'日前平仓（剩'+naturalDaysLeft+'天）。流动性快速下降，保证金提高。';}
+  else if(daysLeft<=30){daysEl.className='countdown-num countdown-urgent';labelEl.textContent='⚠️ 距交割不足30天！';noteEl.textContent='自然人应在'+naturalDate.getMonth()+'月'+naturalDate.getDate()+'日前平仓（剩'+naturalDaysLeft+'天）。流动性快速下降，保证金提高。';}
   else if(daysLeft<=60){daysEl.className='countdown-num countdown-warn';labelEl.textContent='临近交割月（'+daysLeft+'天）';noteEl.textContent='自然人最晚'+naturalDate.getMonth()+1+'月'+naturalDate.getDate()+'日前平仓（剩'+naturalDaysLeft+'天）。建议提前换月到远月合约。';}
   else{daysEl.className='countdown-num countdown-ok';labelEl.textContent='距最后交易日还有';noteEl.textContent='自然人最晚'+naturalDate.getMonth()+1+'月'+naturalDate.getDate()+'日前平仓。距离较远，时间充裕。';}
 }
 function getExchange(code,mkt){
-  if(mkt===113)return'SHFE'; // 上期所
-  if(mkt===114)return'DCE';   // 大商所
-  if(mkt===115)return'CZCE';  // 郑商所
-  if(mkt===8)return'CFFEX';   // 中金所
+  if(mkt===113)return'SHFE';
+  if(mkt===114)return'DCE';
+  if(mkt===115)return'CZCE';
+  if(mkt===8)return'CFFEX';
   return'CZCE';
 }
 
-// ============ 仓单监控（新模块5）============
-function updateWarehouseReceipts(){
-  var wh=parseFloat(document.getElementById('whInput').value)||0;
-  var whPrev=parseFloat(document.getElementById('whPrevInput').value)||0;
-  var change=wh-whPrev,changePct=whPrev>0?change/whPrev*100:0;
-  var changeEl=document.getElementById('whChange'),signalEl=document.getElementById('whSignal');
-  if(whPrev>0){
-    changeEl.textContent=(change>=0?'+':'')+change.toLocaleString()+' 手 ('+(changePct>=0?'+':'')+changePct.toFixed(1)+'%)';
-    changeEl.className='factor-val '+(change>=0?'up':'down');
-  }else{changeEl.textContent='请填写前后两日仓单量';changeEl.className='factor-val';}
-  if(Math.abs(changePct)>20){
-    signalEl.textContent=changePct>0?'🔴 仓单大增（偏空，套保压力大）':'🟢 仓单大减（偏多，实货流出）';
-    signalEl.className='factor-val '+(changePct>0?'up':'down');
-  }else if(Math.abs(changePct)>10){
-    signalEl.textContent=changePct>0?'🟠 仓单增加（略偏空）':'🟢 仓单减少（略偏多）';
-    signalEl.className='factor-val '+(changePct>0?'up':'down');
-  }else if(whPrev>0){signalEl.textContent='→ 仓单平稳';signalEl.className='factor-val';}
-  else{signalEl.textContent='等待数据';signalEl.className='factor-val';}
+// ============ 仓单监控（全自动·东方财富API）============
+var whProductMap={},whRawData=[],whFetchTimer=null;
+function fetchWarehouseReceiptData(){
+  // Step 1: 获取品种代码映射
+  var url='https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_FUTU_POSITIONCODE&columns=TRADE_MARKET_CODE,TRADE_CODE,TRADE_TYPE&filter=(IS_MAINCODE=%221%22)&pageSize=500&source=WEB&client=WEB';
+  jsonpFetch(url,function(resp){
+    if(resp&&resp.result&&resp.result.data){
+      resp.result.data.forEach(function(item){whProductMap[item.TRADE_TYPE]=item.TRADE_CODE;});
+      console.log('仓单品种映射加载成功，共'+Object.keys(whProductMap).length+'个品种');
+      document.getElementById('whSourceBadge').textContent='东方财富';document.getElementById('whSourceBadge').className='badge badge-ok';
+      updateWarehouseReceiptForCurrent();
+    }else{console.log('仓单品种映射加载失败');document.getElementById('whSourceBadge').textContent='加载中...';document.getElementById('whSourceBadge').className='badge badge-err';}
+  },10000);
+}
+function updateWarehouseReceiptForCurrent(){
+  var v=getVariety(currentContract);
+  var productId=whProductMap[v]||whProductMap[v.toUpperCase()]||whProductMap[v.toLowerCase()];
+  if(!productId){
+    document.getElementById('whCurrent').textContent='无数据';document.getElementById('whDate').textContent='--';
+    document.getElementById('whChange').textContent='该品种暂无仓单数据';document.getElementById('whSignal').textContent='--';
+    document.getElementById('whSourceBadge').textContent='无品种映射';document.getElementById('whSourceBadge').className='badge badge-err';
+    return;
+  }
+  var url='https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_FUTU_STOCKDATA&columns=SECURITY_CODE,TRADE_DATE,ON_WARRANT_NUM,ADDCHANGE&filter=(SECURITY_CODE=%22'+productId+'%22)(TRADE_DATE%3E=%272020-01-01%27)&pageSize=5&sortTypes=-1&sortColumns=TRADE_DATE&source=WEB&client=WEB';
+  jsonpFetch(url,function(resp){
+    if(resp&&resp.result&&resp.result.data&&resp.result.data.length>0){
+      whRawData=resp.result.data;
+      var latest=whRawData[0],prev=whRawData[1]||latest;
+      var currNum=parseInt(latest.ON_WARRANT_NUM)||0,prevNum=parseInt(prev.ON_WARRANT_NUM)||0;
+      var change=currNum-prevNum,changePct=prevNum>0?(change/prevNum*100):0;
+      document.getElementById('whCurrent').textContent=currNum.toLocaleString()+' 手';
+      document.getElementById('whCurrent').className='wh-num';
+      document.getElementById('whDate').textContent=latest.TRADE_DATE||'--';
+      var changeEl=document.getElementById('whChange');
+      if(prevNum>0){
+        changeEl.textContent=(change>=0?'+':'')+change.toLocaleString()+' 手 ('+(changePct>=0?'+':'')+changePct.toFixed(1)+'%)';
+        changeEl.className='factor-val '+(change>=0?'wh-change-up':'wh-change-down');
+      }else{changeEl.textContent='（仅最新一期数据）';changeEl.className='factor-val';}
+      var signalEl=document.getElementById('whSignal');
+      if(Math.abs(changePct)>20){
+        signalEl.textContent=changePct>0?'🔴 仓单大增（偏空，套保压力大）':'🟢 仓单大减（偏多，实货流出）';
+        signalEl.className='factor-val '+(changePct>0?'wh-change-up':'wh-change-down');
+      }else if(Math.abs(changePct)>10){
+        signalEl.textContent=changePct>0?'🟠 仓单增加（略偏空）':'🟢 仓单减少（略偏多）';
+        signalEl.className='factor-val '+(changePct>0?'wh-change-up':'wh-change-down');
+      }else if(prevNum>0){signalEl.textContent='→ 仓单平稳';signalEl.className='factor-val';}
+      else{signalEl.textContent='等待更多数据';signalEl.className='factor-val';}
+      document.getElementById('whSourceBadge').textContent='东方财富';document.getElementById('whSourceBadge').className='badge badge-ok';
+      updateStockCycleAuto();
+    }else{
+      console.log('仓单数据获取失败');
+      document.getElementById('whCurrent').textContent='获取失败';document.getElementById('whSourceBadge').textContent='API错误';document.getElementById('whSourceBadge').className='badge badge-err';
+    }
+  },10000);
 }
 
-// ============ 库存周期（新模块6）============
-function updateStockCycle(){
-  var inv=document.getElementById('cycleInventory').value,price=document.getElementById('cyclePrice').value;
-  var phaseEl=document.getElementById('cyclePhase'),descEl=document.getElementById('cycleDesc'),svgEl=document.getElementById('stockCycleSvg');
-  if(!inv||!price){svgEl.innerHTML=svgQuadrant(-1);phaseEl.textContent='--';descEl.textContent='选择库存和价格趋势后显示';return;}
-  var phase,color,desc;
-  if(inv==='up'&&price==='down'){phase='被动建库存';color='#f59e0b';desc='库存被动上升（需求弱→销售不畅），价格承压下跌。往往是熊市中途，空头可继续持有。';}
-  else if(inv==='up'&&price==='up'){phase='主动建库存';color='#ef4444';desc='企业主动补库，价格上涨中囤货。往往是牛市后期，警惕拐点。多单应逐步减仓。';}
-  else if(inv==='down'&&price==='up'){phase='主动去库存';color='#22c55e';desc='价格上涨中库存反而下降，说明需求旺盛。往往是牛市中期，多单可继续持有。';}
-  else if(inv==='down'&&price==='down'){phase='被动去库存';color='#16a34a';desc='价格下跌但库存下降，企业恐慌性抛售。往往是熊市末期，底部接近，关注反转信号。';}
+// ============ 库存周期定位（全自动）============
+function updateStockCycleAuto(){
+  var phaseEl=document.getElementById('cyclePhase'),descEl=document.getElementById('cycleDesc'),
+      svgEl=document.getElementById('stockCycleSvg'),badge=document.getElementById('cycleSourceBadge'),
+      priceTrendEl=document.getElementById('cyclePriceTrend'),whTrendEl=document.getElementById('cycleWHTrend');
+
+  // 价格趋势：5日均价对比
+  var priceTrend='',priceDir='',whTrend='',whDir='';
+  if(priceHistory.length>=10){
+    var recent5=priceHistory.slice(-5),prev5=priceHistory.slice(-10,-5);
+    var avgRecent=recent5.reduce(function(a,b){return a+b;},0)/5;
+    var avgPrev=prev5.reduce(function(a,b){return a+b;},0)/5;
+    var priceChange=avgPrev>0?(avgRecent-avgPrev)/avgPrev*100:0;
+    if(priceChange>1){priceTrend='↑ 上涨';priceDir='up';}
+    else if(priceChange<-1){priceTrend='↓ 下跌';priceDir='down';}
+    else{priceTrend='→ 横盘';priceDir='flat';}
+    priceTrendEl.textContent=priceTrend+' ('+(priceChange>=0?'+':'')+priceChange.toFixed(1)+'%)';
+  }else{priceTrendEl.textContent='数据不足（需5日行情）';}
+
+  // 仓单趋势
+  if(whRawData.length>=2){
+    var latestWH=parseInt(whRawData[0].ON_WARRANT_NUM)||0,prevWH=parseInt(whRawData[1].ON_WARRANT_NUM)||0;
+    var whChange=prevWH>0?(latestWH-prevWH)/prevWH*100:0;
+    if(whChange>5){whTrend='↑ 增加';whDir='up';}
+    else if(whChange<-5){whTrend='↓ 减少';whDir='down';}
+    else{whTrend='→ 持平';whDir='flat';}
+    whTrendEl.textContent=whTrend+' ('+(whChange>=0?'+':'')+whChange.toFixed(1)+'%)';
+  }else{whTrendEl.textContent='等待仓单数据';whDir='unknown';}
+
+  // 判断周期阶段
+  var phase='',color='#6b7280',desc='',pos=-1;
+  if(priceDir==='down'&&whDir==='up'){
+    phase='被动建库存';color='#f59e0b';pos=3;
+    desc='库存被动上升（需求弱→销售不畅），价格承压下跌。往往是熊市中途，空头可继续持有。';
+  }else if(priceDir==='up'&&whDir==='up'){
+    phase='主动建库存';color='#ef4444';pos=0;
+    desc='企业主动补库，价格上涨中囤货。往往是牛市后期，警惕拐点。多单应逐步减仓。';
+  }else if(priceDir==='up'&&whDir==='down'){
+    phase='主动去库存';color='#22c55e';pos=1;
+    desc='价格上涨中库存反而下降，说明需求旺盛。往往是牛市中期，多单可继续持有。';
+  }else if(priceDir==='down'&&whDir==='down'){
+    phase='被动去库存';color='#16a34a';pos=2;
+    desc='价格下跌但库存下降，企业恐慌性抛售。往往是熊市末期，底部接近，关注反转信号。';
+  }else{
+    phase='趋势不明';desc='价格或仓单趋势不明确，等待更多数据确认。';
+  }
+
   phaseEl.textContent=phase;phaseEl.style.color=color;descEl.textContent=desc;
-  var pos=0;if(inv==='up'&&price==='up')pos=0;else if(inv==='down'&&price==='up')pos=1;else if(inv==='down'&&price==='down')pos=2;else if(inv==='up'&&price==='down')pos=3;
   svgEl.innerHTML=svgQuadrant(pos);
+  if(whRawData.length>=2&&priceHistory.length>=10){
+    badge.textContent='自动分析';badge.className='badge badge-ok';
+  }else{
+    badge.textContent='数据不全';badge.className='badge badge-err';
+  }
 }
+
 function svgQuadrant(highlight){
   var s='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="160" height="160">';
   s+='<line x1="100" y1="10" x2="100" y2="190" stroke="#e5e7eb" stroke-width="1"/>';
   s+='<line x1="10" y1="100" x2="190" y2="100" stroke="#e5e7eb" stroke-width="1"/>';
-  s+='<polygon points="2,2 10,2 10,10 2,10" fill="#6b7280"/><text x="12" y="10" font-size="9" fill="#6b7280">价格↑</text>';
-  s+='<polygon points="2,198 10,198 10,190 2,190" fill="#6b7280"/><text x="12" y="198" font-size="9" fill="#6b7280">价格↓</text>';
-  s+='<polygon points="2,2 10,2 10,10 2,10" fill="#6b7280"/><text x="190" y="12" font-size="9" fill="#6b7280" text-anchor="end">库存↑</text>';
-  s+='<text x="12" y="192" font-size="9" fill="#6b7280">库存↓</text>';
-  // 四个象限
+  s+='<text x="12" y="10" font-size="9" fill="#6b7280">价格↑</text>';
+  s+='<text x="12" y="198" font-size="9" fill="#6b7280">价格↓</text>';
+  s+='<text x="190" y="12" font-size="9" fill="#6b7280" text-anchor="end">仓单↑</text>';
+  s+='<text x="190" y="192" font-size="9" fill="#6b7280" text-anchor="end">仓单↓</text>';
   var qs=[
-    {x:105,y:30,text:'主动建库存',fill:highlight===0?'#fee2e2':'#f9fafb',border:highlight===0?'#ef4444':'#e5e7eb',desc:'库存↑价↑'},
-    {x:105,y:90,text:'被动去库存',fill:highlight===1?'#dcfce7':'#f9fafb',border:highlight===1?'#22c55e':'#e5e7eb',desc:'库存↓价↑'},
-    {x:10,y:90,text:'被动建库存',fill:highlight===3?'#fefce8':'#f9fafb',border:highlight===3?'#f59e0b':'#e5e7eb',desc:'库存↑价↓'},
-    {x:10,y:150,text:'主动去库存',fill:highlight===2?'#f0fdf4':'#f9fafb',border:highlight===2?'#16a34a':'#e5e7eb',desc:'库存↓价↓'}
+    {x:105,y:30,text:'主动建库存',fill:highlight===0?'#fee2e2':'#f9fafb',border:highlight===0?'#ef4444':'#e5e7eb',desc:'仓单↑价↑'},
+    {x:105,y:90,text:'被动去库存',fill:highlight===1?'#dcfce7':'#f9fafb',border:highlight===1?'#22c55e':'#e5e7eb',desc:'仓单↓价↑'},
+    {x:10,y:90,text:'被动建库存',fill:highlight===3?'#fefce8':'#f9fafb',border:highlight===3?'#f59e0b':'#e5e7eb',desc:'仓单↑价↓'},
+    {x:10,y:150,text:'主动去库存',fill:highlight===2?'#f0fdf4':'#f9fafb',border:highlight===2?'#16a34a':'#e5e7eb',desc:'仓单↓价↓'}
   ];
   qs.forEach(function(q){
     s+='<rect x="'+q.x+'" y="'+q.y+'" width="82" height="42" rx="6" fill="'+q.fill+'" stroke="'+q.border+'" stroke-width="'+((q.fill!=='#f9fafb')?'2':'1')+'"/>';
@@ -716,7 +722,7 @@ function svgQuadrant(highlight){
   s+='</svg>';return s;
 }
 
-// ============ 产业链图谱（新模块7）============
+// ============ 产业链图谱 ============
 var CHAIN_DATA={
   'SR':{name:'白糖产业链',nodes:[
     {label:'甘蔗/甜菜',x:10,y:80,color:'#86efac'},{label:'白糖',x:170,y:40,color:'#fef08a'},{label:'乙醇',x:170,y:120,color:'#fca5a5'},
@@ -757,13 +763,11 @@ function updateSupplyChain(){
   var container=document.getElementById('chainContainer');
   if(!chain){container.innerHTML='<span style="color:var(--muted);">该品种暂无产业链图谱数据</span>';return;}
   var svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 160" width="100%" style="max-width:380px;">';
-  // 画箭头连线
   chain.edges.forEach(function(e){
     var from=chain.nodes[e[0]],to=chain.nodes[e[1]];
     svg+='<line x1="'+(from.x+35)+'" y1="'+from.y+'" x2="'+(to.x-5)+'" y2="'+to.y+'" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>';
   });
   svg+='<defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#9ca3af"/></marker></defs>';
-  // 画节点
   chain.nodes.forEach(function(n){
     var tw=n.label.length*12+16,th=20;
     svg+='<rect x="'+(n.x-tw/2+18)+'" y="'+(n.y-th/2)+'" width="'+tw+'" height="'+th+'" rx="10" fill="'+n.color+'" stroke="#d1d5db" stroke-width="1"/>';
@@ -774,7 +778,7 @@ function updateSupplyChain(){
   container.innerHTML=svg;
 }
 
-// ============ 互补品/替代品监控（新模块8）============
+// ============ 互补品/替代品监控 ============
 var COMPL_PAIRS=[
   {main:'j',comp:'i',mainLabel:'焦炭',compLabel:'铁矿石',note:'炼钢原料互补：焦炭和铁矿石都是高炉炼钢的核心原料，价差扩大时钢厂可能调整配比。',threshold:500,unit:'元/吨'},
   {main:'i',comp:'j',mainLabel:'铁矿石',compLabel:'焦炭',note:'炼钢原料互补：焦炭和铁矿石都是高炉炼钢的核心原料，价差扩大时钢厂可能调整配比。',threshold:500,unit:'元/吨'},
@@ -793,7 +797,6 @@ var SUGAR_PAIR={main:'SR',comp:'cs',mainLabel:'白糖',compLabel:'玉米淀粉',
 function updateSubComp(){
   var v=getVariety(currentContract).toUpperCase();
   var isSugar=(v==='SR');
-  // 判断显示替代品还是互补品
   var card=document.getElementById('subCompCard'),title=document.getElementById('subCompTitle'),
       note=document.getElementById('subCompNote'),mainLabel=document.getElementById('mainSpotLabel'),
       altLabel=document.getElementById('altSpotLabel');
@@ -818,7 +821,6 @@ function updateSubComp(){
       document.getElementById('mainSpotInput').value=mSpot;document.getElementById('altSpotInput').value=cSpot;
     }else{card.style.display='none';return;}
   }
-  // 计算价差
   var main=parseFloat(document.getElementById('mainSpotInput').value)||5000;
   var alt=parseFloat(document.getElementById('altSpotInput').value)||3600;
   var spread=main-alt,threshold=isSugar?SUGAR_PAIR.threshold:(pair?pair.threshold:500);
@@ -834,8 +836,8 @@ function updateAllModuleViews(){
   updateDeliveryCountdown();
   updateSupplyChain();
   updateSubComp();
-  updateStockCycle();
-  updateMoneyManagement();
+  updateStockCycleAuto();
+  updateWarehouseReceiptForCurrent();
 }
 
 // ============ 交易日志 ============
@@ -858,14 +860,16 @@ function renderTabs(){var bar=document.getElementById('tabBar'),html='';myContra
 function switchContract(code,mkt){
   if(code===currentContract&&mkt===currentMkt)return;
   currentContract=code;currentMkt=mkt;var c=findContract(code,mkt);currentName=c?c.name:code;
-  priceHistory=[];klineData=[];futuresPrice=0;openInterestVal=0;oiHistory=[];
+  priceHistory=[];klineData=[];futuresPrice=0;openInterestVal=0;oiHistory=[];whRawData=[];
   loadContractSettings(c);
   document.getElementById('futuresPrice').textContent='加载中...';document.getElementById('futuresChange').textContent='';
   document.getElementById('dataSource').textContent='连接中...';document.getElementById('dataSource').className='badge badge-info';
   document.getElementById('quoteTitle').textContent='实时行情 · '+currentName;
+  document.getElementById('whCurrent').textContent='加载中...';
   renderTabs();updateAllModuleViews();
   fetchRealQuote();
   fetchKlineData(currentMkt,currentContract,function(klines){klineData=klines;updateKlineChart(klines);if(klines&&klines.length>0){klines.forEach(function(k){var p=k.split(',');priceHistory.push(parseFloat(p[2]));});if(priceHistory.length>120)priceHistory=priceHistory.slice(-120);}});
+  fetchWarehouseReceiptData();
   addLog('切换合约至 '+currentName);
 }
 function loadContractSettings(c){
@@ -876,9 +880,7 @@ function loadContractSettings(c){
   var age=getSpotDataAge(),srcBadge=document.getElementById('spotSource'),hintEl=document.getElementById('spotUpdateHint');
   if(age.source.indexOf('生意社')>-1){srcBadge.textContent=age.source;srcBadge.className='badge badge-ok';hintEl.textContent=' 更新时间:'+(age.time||'未知')+'，每日自动更新。';}
   else{srcBadge.textContent='';srcBadge.className='badge';hintEl.textContent='';}
-  document.getElementById('multiplierInput').value=getMultiplier(c.code);
 }
-function getMultiplier(code){var v=getVariety(code).toUpperCase();if(['CU','cu'].indexOf(v)>-1)return 5;if(['AU','au'].indexOf(v)>-1)return 1000;if(['AG','ag'].indexOf(v)>-1)return 15;if(['SC','sc'].indexOf(v)>-1)return 1000;if(['FG','SA'].indexOf(v)>-1)return 20;return 10;}
 function saveContractSettings(){var c=findContract(currentContract,currentMkt);if(!c)return;c.spot=parseFloat(document.getElementById('spotInput').value)||5000;c.inventory=document.getElementById('inventoryInput').value;c.profit=document.getElementById('profitInput').value;saveContracts(myContracts);}
 function findContract(code,mkt){for(var i=0;i<myContracts.length;i++){if(myContracts[i].code===code&&myContracts[i].mkt===mkt)return myContracts[i];}return null;}
 function addContract(code,name,mkt){if(findContract(code,mkt)){switchContract(code,mkt);return;}var c={code:code,name:name,mkt:mkt};ensureContractDefaults(c);myContracts.push(c);saveContracts(myContracts);renderTabs();switchContract(code,mkt);addLog('添加合约 '+name);}
@@ -900,17 +902,17 @@ window.onload=function(){
   var fc=findContract(currentContract,currentMkt);if(fc)loadContractSettings(fc);
   updateMarketStatus();lastMarketState=isMarketOpen().open;
   updateAllModuleViews();
-  updateMoneyManagement();
   fetchRealQuote();
-  fetchKlineData(currentMkt,currentContract,function(klines){klineData=klines;updateKlineChart(klines);if(klines&&klines.length>0){klines.forEach(function(k){var p=k.split(',');priceHistory.push(parseFloat(p[2]));}if(priceHistory.length>120)priceHistory=priceHistory.slice(-120);calculateSignals();}});
+  fetchKlineData(currentMkt,currentContract,function(klines){klineData=klines;updateKlineChart(klines);if(klines&&klines.length>0){klines.forEach(function(k){var p=k.split(',');priceHistory.push(parseFloat(p[2]));});if(priceHistory.length>120)priceHistory=priceHistory.slice(-120);calculateSignals();}});
+  fetchWarehouseReceiptData();
   setInterval(function(){var open=updateMarketStatus();if(open!==lastMarketState){if(open){fetchRealQuote(true);addLog('市场开市');}else{addLog('市场收盘');}lastMarketState=open;}},1000);
   setInterval(fetchRealQuote,10000);
   setInterval(function(){var st=isMarketOpen();if(st.open)fetchKlineData(currentMkt,currentContract,function(klines){klineData=klines;updateKlineChart(klines);});},300000);
-  var st=isMarketOpen();addLog('系统启动（八大模块版） '+currentName+'。'+(st.open?'开市中（'+st.session+'）':'休市（'+st.reason+'）')+'。新增：资金管理、离场信号、交割倒计时、仓单、产业链、互补品、库存周期、持仓量分析。');
+  var st=isMarketOpen();addLog('系统启动（七大模块自动版） '+currentName+'。'+(st.open?'开市中（'+st.session+'）':'休市（'+st.reason+'）')+'。仓单和库存周期已实现全自动化。');
 };
 window.addEventListener('resize',function(){if(klineChart)klineChart.resize();});
 
-// 兼容旧版 spot_data.json 中的 CU 大写问题
+// 兼容旧版 spot_data.json 中��� CU 大写问题
 if(typeof VARIETY_DEFAULTS['CU']==='undefined')VARIETY_DEFAULTS['CU']=VARIETY_DEFAULTS['cu'];
 </script>
 </body>

@@ -1,5 +1,5 @@
 // Service Worker for 期货盯盘系统
-var CACHE_NAME = 'futures-monitor-v3';
+var CACHE_NAME = 'futures-monitor-v4';
 var urlsToCache = [
   './index.html',
   './manifest.json',
@@ -31,7 +31,9 @@ self.addEventListener('activate', function(event) {
 self.addEventListener('fetch', function(event) {
   // 行情API和搜索API走网络优先（实时数据）
   if (event.request.url.includes('push2.eastmoney.com') ||
-      event.request.url.includes('searchapi.eastmoney.com')) {
+      event.request.url.includes('push2his.eastmoney.com') ||
+      event.request.url.includes('searchapi.eastmoney.com') ||
+      event.request.url.includes('datacenter-web.eastmoney.com')) {
     event.respondWith(
       fetch(event.request, { cache: 'no-store' }).catch(function() {
         return new Response(JSON.stringify({ error: 'offline' }), {
