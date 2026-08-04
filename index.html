@@ -567,7 +567,7 @@ function updateExitSignals(){
   }
 }
 
-// ============ 持仓量分析（新浪期货同源实时+历史数据）============
+// ============ 持仓量分析（交易所总持仓口径，双源交叉验证）============
 function updateOpenInterest(c){
   c=c||{};var mk=isMarketOpen(),oi=accurateOICurrent||0,history=accurateOIHistory||[];
   var currentEl=document.getElementById('oiCurrent'),changeEl=document.getElementById('oiChange'),avgEl=document.getElementById('oi5Day'),sigEl=document.getElementById('oiSignal'),noteEl=document.getElementById('oiNote');
@@ -580,9 +580,9 @@ function updateOpenInterest(c){
   else{changeEl.textContent='暂不可用';changeEl.className='factor-val neutral';}
   var avgHistory=completed;
   var lastFive=avgHistory.slice(-5),avg='暂不可用';if(lastFive.length){var sum=0;lastFive.forEach(function(x){sum+=x.oi;});avg=Math.round(sum/lastFive.length).toLocaleString()+' 手'+(lastFive.length<5?' ('+lastFive.length+'日均)':'');}avgEl.textContent=avg;
-  if(!mk.open){sigEl.textContent='休市中 — 持仓为结算数据';sigEl.className='factor-val neutral';noteEl.textContent='非交易时段显示最近结算持仓；较昨日变化使用同一数据源的完整交易日数据，开市后恢复实时分析。';return;}
+  if(!mk.open){sigEl.textContent='休市中 — 持仓为结算数据';sigEl.className='factor-val neutral';noteEl.textContent='非交易时段显示最近结算持仓；较昨日变化使用交易所总持仓的统一口径计算，开市后恢复实时分析。';return;}
   var prevClose=previous?previous.close:0,priceChange=prevClose>0?(futuresPrice-prevClose)/prevClose*100:0,priceDir=priceChange>0.5?'上涨':(priceChange<-0.5?'下跌':'横盘');
-  if(!accurateOIReady||!previousOI){sigEl.textContent='数据加载中';sigEl.className='factor-val neutral';noteEl.textContent='正在获取同一数据源的实时持仓和上一完整交易日持仓。';return;}
+  if(!accurateOIReady||!previousOI){sigEl.textContent='数据加载中';sigEl.className='factor-val neutral';noteEl.textContent='正在获取当前总持仓和上一完整交易日总持仓，并进行双源核验。';return;}
   if(pct>5&&priceChange>0.5){sigEl.textContent='价涨仓增 — 多头趋势增强';sigEl.className='factor-val up';noteEl.textContent='价格上涨、持仓同步增加，通常表示新资金入场，趋势延续概率较高。';}
   else if(pct<-5&&priceChange<-0.5){sigEl.textContent='价跌仓减 — 空头离场/行情偏弱';sigEl.className='factor-val down';noteEl.textContent='价格下跌、持仓同步减少，通常表示资金离场，行情可能进入尾声。';}
   else if(pct>5&&priceChange<-0.5){sigEl.textContent='价跌仓增 — 空头力量增强';sigEl.className='factor-val down';noteEl.textContent='价格下跌、持仓增加，通常表示新的空头资金入场。';}
