@@ -1,5 +1,5 @@
 // Service Worker for 期货盯盘系统
-var CACHE_NAME = 'futures-monitor-v4';
+var CACHE_NAME = 'futures-monitor-v5';
 var urlsToCache = [
   './index.html',
   './manifest.json',
