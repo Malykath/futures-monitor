@@ -1,60 +1,60 @@
 {
-  "update_time": "2026-07-31 17:00",
+  "update_time": "2026-08-03 17:00",
   "source": "生意社(100ppi.com)",
   "source_url": "https://www.100ppi.com/xhb/",
   "varieties": {
-    "SR": 5170.0,
-    "rb": 3037.0,
-    "CU": 106055.0,
-    "MA": 2627.5,
-    "TA": 5945.75,
-    "m": 3066.0,
-    "c": 2250.0,
-    "i": 695.0,
-    "FG": 12.38,
+    "SR": 5143.33,
+    "rb": 3002.34,
+    "CU": 106143.33,
+    "MA": 2620.00,
+    "TA": 6027.00,
+    "m": 3056.00,
+    "c": 2247.14,
+    "i": 680.00,
+    "FG": 12.33,
     "SA": 0,
     "p": 0,
     "y": 0,
-    "OI": 10186.0,
-    "a": 4504.0,
-    "hc": 3256.0,
-    "wr": 3267.5,
-    "l": 8233.33,
-    "pp": 8973.33,
-    "v": 4382.0,
-    "eg": 5021.67,
+    "OI": 10226.00,
+    "a": 4500.00,
+    "hc": 3262.00,
+    "wr": 3257.50,
+    "l": 8243.33,
+    "pp": 9006.67,
+    "v": 4392.00,
+    "eg": 5165.00,
     "eb": 0,
-    "al": 23643.33,
-    "zn": 24841.0,
-    "pb": 15465.0,
-    "sn": 426660.0,
-    "ni": 132650.0,
-    "au": 884.12,
-    "ag": 14281.0,
-    "j": 1957.5,
-    "jm": 1846.25,
-    "ZC": 844.0,
+    "al": 23510.00,
+    "zn": 25067.00,
+    "pb": 15330.00,
+    "sn": 426920.00,
+    "ni": 131483.33,
+    "au": 883.89,
+    "ag": 14166.67,
+    "j": 1957.50,
+    "jm": 1823.75,
+    "ZC": 844.00,
     "SF": 0,
     "SM": 0,
     "AP": 0,
     "CJ": 0,
     "PK": 0,
-    "lh": 10.38,
-    "jd": 9.7,
-    "CF": 17437.67,
-    "CY": 24675.0,
+    "lh": 10.45,
+    "jd": 9.22,
+    "CF": 17440.17,
+    "CY": 24675.00,
     "cs": 3000,
-    "UR": 1757.5,
-    "bu": 4337.5,
-    "fu": 6262.5,
-    "ru": 16483.33,
+    "UR": 1762.50,
+    "bu": 4310.00,
+    "fu": 6237.50,
+    "ru": 16433.33,
     "br": 13441.67,
-    "sp": 4850.0,
+    "sp": 4833.33,
     "ss": 0,
-    "pg": 6262.5,
-    "sc": 83.59,
-    "SH": 643.0,
-    "bz": 7767.67
+    "pg": 6175.00,
+    "sc": 84.67,
+    "SH": 641.00,
+    "bz": 7501.00
   },
   "kg_unit_varieties": [
     "lh",
@@ -65,199 +65,199 @@
   "all_products": [
     {
       "name": "白糖",
-      "spot_price": 5170.0,
+      "spot_price": 5143.33,
       "unit": "元/吨",
       "spec": "一级品"
     },
     {
       "name": "螺纹钢",
-      "spot_price": 3037.0,
+      "spot_price": 3002.34,
       "unit": "元/吨",
       "spec": "III级螺纹钢"
     },
     {
       "name": "铜",
-      "spot_price": 106055.0,
+      "spot_price": 106143.33,
       "unit": "元/吨",
       "spec": "1#电解铜"
     },
     {
       "name": "甲醇",
-      "spot_price": 2627.5,
+      "spot_price": 2620.00,
       "unit": "元/吨",
       "spec": "工业甲醇"
     },
     {
       "name": "PTA",
-      "spot_price": 5945.75,
+      "spot_price": 6027.00,
       "unit": "元/吨",
       "spec": "优等品"
     },
     {
       "name": "豆粕",
-      "spot_price": 3066.0,
+      "spot_price": 3056.00,
       "unit": "元/吨",
       "spec": "饲料用"
     },
     {
       "name": "玉米",
-      "spot_price": 2250.0,
+      "spot_price": 2247.14,
       "unit": "元/吨",
       "spec": "黄玉米"
     },
     {
       "name": "铁矿石",
-      "spot_price": 695.0,
+      "spot_price": 680.00,
       "unit": "元/吨",
       "spec": "PB粉"
     },
     {
       "name": "玻璃",
-      "spot_price": 12.38,
+      "spot_price": 12.33,
       "unit": "元/平方米",
       "spec": "浮法玻璃"
     },
     {
       "name": "菜籽油",
-      "spot_price": 10186.0,
+      "spot_price": 10226.00,
       "unit": "元/吨",
       "spec": "三级"
     },
     {
       "name": "大豆",
-      "spot_price": 4504.0,
+      "spot_price": 4500.00,
       "unit": "元/吨",
       "spec": "黄大豆"
     },
     {
       "name": "热轧板卷",
-      "spot_price": 3256.0,
+      "spot_price": 3262.00,
       "unit": "元/吨",
       "spec": "普热轧板卷"
     },
     {
       "name": "线材",
-      "spot_price": 3267.5,
+      "spot_price": 3257.50,
       "unit": "元/吨",
       "spec": "高线"
     },
     {
       "name": "LLDPE",
-      "spot_price": 8233.33,
+      "spot_price": 8243.33,
       "unit": "元/吨",
       "spec": "7042"
     },
     {
       "name": "PP",
-      "spot_price": 8973.33,
+      "spot_price": 9006.67,
       "unit": "元/吨",
       "spec": "拉丝L5E89"
     },
     {
       "name": "PVC",
-      "spot_price": 4382.0,
+      "spot_price": 4392.00,
       "unit": "元/吨",
       "spec": "SG5"
     },
     {
       "name": "乙二醇",
-      "spot_price": 5021.67,
+      "spot_price": 5165.00,
       "unit": "元/吨",
       "spec": "聚酯级"
     },
     {
       "name": "铝",
-      "spot_price": 23643.33,
+      "spot_price": 23510.00,
       "unit": "元/吨",
       "spec": "重熔用铝锭"
     },
     {
       "name": "锌",
-      "spot_price": 24841.0,
+      "spot_price": 25067.00,
       "unit": "元/吨",
       "spec": "0#锌锭"
     },
     {
       "name": "铅",
-      "spot_price": 15465.0,
+      "spot_price": 15330.00,
       "unit": "元/吨",
       "spec": "1#铅锭"
     },
     {
       "name": "锡",
-      "spot_price": 426660.0,
+      "spot_price": 426920.00,
       "unit": "元/吨",
       "spec": "1#锡锭"
     },
     {
       "name": "镍",
-      "spot_price": 132650.0,
+      "spot_price": 131483.33,
       "unit": "元/吨",
       "spec": "1#镍"
     },
     {
       "name": "黄金",
-      "spot_price": 884.12,
+      "spot_price": 883.89,
       "unit": "元/克",
       "spec": "Au99.99"
     },
     {
       "name": "白银",
-      "spot_price": 14281.0,
+      "spot_price": 14166.67,
       "unit": "元/千克",
       "spec": "1#白银"
     },
     {
       "name": "焦炭",
-      "spot_price": 1957.5,
+      "spot_price": 1957.50,
       "unit": "元/吨",
       "spec": "准一级冶金焦"
     },
     {
       "name": "炼焦煤",
-      "spot_price": 1846.25,
+      "spot_price": 1823.75,
       "unit": "元/吨",
       "spec": "焦煤"
     },
     {
       "name": "动力煤",
-      "spot_price": 844.0,
+      "spot_price": 844.00,
       "unit": "元/吨",
       "spec": "5500Kcal"
     },
     {
       "name": "皮棉",
-      "spot_price": 17437.67,
+      "spot_price": 17440.17,
       "unit": "元/吨",
       "spec": "纤维长度28mm"
     },
     {
       "name": "棉纱32S",
-      "spot_price": 24675.0,
+      "spot_price": 24675.00,
       "unit": "元/吨",
       "spec": "32S"
     },
     {
       "name": "尿素",
-      "spot_price": 1757.5,
+      "spot_price": 1762.50,
       "unit": "元/吨",
       "spec": "农业用"
     },
     {
       "name": "沥青",
-      "spot_price": 4337.5,
+      "spot_price": 4310.00,
       "unit": "元/吨",
       "spec": "70#"
     },
     {
       "name": "燃料油",
-      "spot_price": 6262.5,
+      "spot_price": 6237.50,
       "unit": "元/吨",
       "spec": "180CST"
     },
     {
       "name": "天然橡胶",
-      "spot_price": 16483.33,
+      "spot_price": 16433.33,
       "unit": "元/吨",
       "spec": "标准胶"
     },
@@ -269,67 +269,67 @@
     },
     {
       "name": "针叶木浆",
-      "spot_price": 4850.0,
+      "spot_price": 4833.33,
       "unit": "元/吨",
       "spec": "针叶木浆"
     },
     {
       "name": "液化气",
-      "spot_price": 6262.5,
+      "spot_price": 6175.00,
       "unit": "元/吨",
       "spec": "民用气"
     },
     {
       "name": "WTI原油",
-      "spot_price": 83.59,
+      "spot_price": 84.67,
       "unit": "美元/桶",
       "spec": "WTI原油"
     },
     {
       "name": "烧碱",
-      "spot_price": 643.0,
+      "spot_price": 641.00,
       "unit": "元/吨",
       "spec": "32%液碱"
     },
     {
       "name": "纯苯",
-      "spot_price": 7767.67,
+      "spot_price": 7501.00,
       "unit": "元/吨",
       "spec": "优级品"
     },
     {
       "name": "生猪",
-      "spot_price": 10.38,
+      "spot_price": 10.45,
       "unit": "元/公斤",
       "spec": "90-100kg"
     },
     {
       "name": "鸡蛋",
-      "spot_price": 9.7,
+      "spot_price": 9.22,
       "unit": "元/公斤",
       "spec": "褐壳"
     },
     {
       "name": "醋酸",
-      "spot_price": 3223.33,
+      "spot_price": 3190.00,
       "unit": "元/吨",
       "spec": "99.8%"
     },
     {
       "name": "硫磺",
-      "spot_price": 9185.67,
+      "spot_price": 9285.67,
       "unit": "元/吨",
       "spec": "颗粒硫磺"
     },
     {
       "name": "DOP",
-      "spot_price": 8800.83,
+      "spot_price": 8742.50,
       "unit": "元/吨",
       "spec": "一级品"
     },
     {
       "name": "钛白粉",
-      "spot_price": 15460.0,
+      "spot_price": 15460.00,
       "unit": "元/吨",
       "spec": "金红石型"
     },
@@ -341,19 +341,19 @@
     },
     {
       "name": "PA6",
-      "spot_price": 12600.0,
+      "spot_price": 12600.00,
       "unit": "元/吨",
       "spec": "中粘"
     },
     {
       "name": "PET",
-      "spot_price": 7635.0,
+      "spot_price": 7610.00,
       "unit": "元/吨",
       "spec": "水瓶级"
     },
     {
       "name": "涤纶POY",
-      "spot_price": 8525.0,
+      "spot_price": 8525.00,
       "unit": "元/吨",
       "spec": "熔体纺"
     }
