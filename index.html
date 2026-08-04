@@ -338,7 +338,7 @@ function installPWA(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.
 if(window.matchMedia('(display-mode:standalone)').matches){document.getElementById('installBtn').classList.remove('show');document.getElementById('installBanner').classList.remove('show');}
 
 // ============ 全局状态 ============
-var currentContract='SR609',currentMkt=115,currentName='白糖609',futuresPrice=0,openInterestVal=0,priceHistory=[],klineData=[],dailyOIHistory=[],klineChart=null;
+var currentContract='SR609',currentMkt=115,currentName='白糖609',futuresPrice=0,openInterestVal=0,priceHistory=[],klineData=[],dailyOIHistory=[],accurateOICurrent=0,accurateOIHistory=[],accurateOIReady=false,accurateOIChangePct=0,lastQuoteData=null,oiRequestId=0,klineChart=null;
 
 // ============ 现货数据 ============
 var spotPriceData=null,spotPriceUpdateTime=null;
@@ -390,9 +390,43 @@ function jsonpFetch(url,callback,timeoutMs){timeoutMs=timeoutMs||8000;var cbName
 // ============ 行情获取 ============
 function fetchQuote(mkt,code,callback){
   var secid=mkt+'.'+code;
-  var fields='f43,f44,f45,f46,f47,f48,f57,f58,f60,f161,f92,f168,f169,f170';
+  var fields='f43,f44,f45,f46,f47,f48,f57,f58,f60,f168,f169,f170';
   jsonpFetch('https://push2.eastmoney.com/api/qt/stock/get?secid='+secid+'&fields='+fields,function(resp){if(resp&&resp.data)callback(resp.data);else callback(null);});
 }
+function sinaCode(code){
+  var m=code.match(/^([A-Za-z]+)(\d{3})$/);if(!m)return String(code).toUpperCase();
+  var n=m[2],yy=parseInt(n.charAt(0)),mm=n.slice(1),base=Math.floor(new Date().getFullYear()/10)*10,year=base+yy;
+  if(year<new Date().getFullYear()-1)year+=10;
+  return m[1].toUpperCase()+String(year).slice(-2)+mm;
+}
+function fetchSinaScript(url,globalName,callback){
+  var script=document.createElement('script'),done=false,timer;
+  script.src=url+((url.indexOf('?')>-1?'&':'?')+'_wb='+Date.now()+'_'+(++oiRequestId));script.async=true;
+  function finish(value){if(done)return;done=true;if(timer)clearTimeout(timer);if(script.parentNode)script.parentNode.removeChild(script);callback(value);}
+  script.onload=function(){finish(window[globalName]===undefined?null:window[globalName]);};script.onerror=function(){finish(null);};
+  timer=setTimeout(function(){finish(null);},10000);document.body.appendChild(script);
+}
+function parseSinaQuote(raw){
+  if(typeof raw!=='string')return null;var v=raw.split(',');if(v.length<15)return null;var num=function(x){var n=parseFloat(x);return isFinite(n)?n:0;};
+  return {name:v[0],price:num(v[8]),oi:num(v[13]),date:v[17]||'--'};
+}
+function parseSinaHistory(raw){
+  if(!Array.isArray(raw))return[];return raw.map(function(x){return{date:x.d,close:parseFloat(x.c),oi:parseFloat(x.p)};}).filter(function(x){return x.date&&x.close>0&&x.oi>0;});
+}
+function fetchAccurateOICurrent(){
+  var code=currentContract,mkt=currentMkt,listMkt=(currentMkt===8?220:currentMkt),cbName='_futoi_'+(++oiRequestId),script=document.createElement('script'),done=false,timer;
+  var fields='dm,sc,name,p,zsjd,zde,zdf,f152,o,h,l,zjsj,vol,cje,wp,np,ccl';
+  script.src='https://futsseapi.eastmoney.com/list/'+listMkt+'?orderBy=zdf&sort=desc&pageSize=500&pageIndex=0&field='+fields+'&callback='+cbName+'&callbackName='+cbName+'&blockName='+cbName+'&_wb='+Date.now();script.async=true;
+  function finish(data){if(done)return;done=true;if(timer)clearTimeout(timer);delete window[cbName];if(script.parentNode)script.parentNode.removeChild(script);if(code!==currentContract||mkt!==currentMkt)return;var row=null;if(data&&data.list)for(var i=0;i<data.list.length;i++){if(String(data.list[i].dm).toUpperCase()===String(code).toUpperCase()){row=data.list[i];break;}}if(!row||!(parseFloat(row.ccl)>0)){accurateOIReady=false;updateOpenInterest(lastQuoteData||{});return;}accurateOICurrent=parseFloat(row.ccl);accurateOIReady=true;openInterestVal=accurateOICurrent;if(lastQuoteData){lastQuoteData.openInterest=accurateOICurrent;updateFuturesOpenInterestDisplay(accurateOICurrent);updateOpenInterest(lastQuoteData);updateExitSignals();}}
+  window[cbName]=finish;script.onerror=function(){finish(null);};timer=setTimeout(function(){finish(null);},10000);document.body.appendChild(script);
+}
+function fetchAccurateOIHistory(){
+  var code=currentContract,sina=sinaCode(code),name='_'+sina;
+  fetchSinaScript('https://stock2.finance.sina.com.cn/futures/api/jsonp.php/var%20_'+encodeURIComponent(sina)+'=/InnerFuturesNewService.getDailyKLine?symbol='+encodeURIComponent(sina),name,function(raw){if(code!==currentContract)return;var hist=parseSinaHistory(raw);if(hist.length){accurateOIHistory=hist;dailyOIHistory=hist;updateOpenInterest(lastQuoteData||{});updateExitSignals();}});
+}
+function refreshAccurateOI(withHistory){fetchAccurateOICurrent();if(withHistory)fetchAccurateOIHistory();}
+function updateFuturesOpenInterestDisplay(oi){document.getElementById('openInterest').textContent=oi>0?Math.round(oi).toLocaleString():'--';}
+
 function fetchRealQuote(forceRefresh){
   var open=updateMarketStatus();
   if(!open&&futuresPrice>0&&!forceRefresh){document.getElementById('dataSource').textContent='收盘价';document.getElementById('dataSource').className='badge badge-closing';document.getElementById('quoteTitle').textContent='期货收盘价 · '+(currentName||currentContract);return;}
@@ -400,18 +434,14 @@ function fetchRealQuote(forceRefresh){
   fetchQuote(currentMkt,currentContract,function(data){var ds=document.getElementById('dataSource');if(!data){ds.textContent='获取失败';ds.className='badge badge-err';if(!futuresPrice)document.getElementById('futuresPrice').textContent='获取失败';return;}ds.textContent='实时行情·东方财富';ds.className='badge badge-ok';applyQuoteData(data,false);});
 }
 function applyQuoteData(data,isClosing){
-  futuresPrice=data.f43;openInterestVal=data.f161||0;
-  var c={price:data.f43,open:data.f46,high:data.f44,low:data.f45,preClose:data.f60||data.f48,volume:data.f47,change:data.f169,changePct:data.f170,name:data.f58,openInterest:data.f161||0,preOpenInterest:data.f92||0};
-  currentName=c.name||currentName;
+  futuresPrice=data.f43;
+  var c={price:data.f43,open:data.f46,high:data.f44,low:data.f45,preClose:data.f60||data.f48,volume:data.f47,change:data.f169,changePct:data.f170,name:data.f58,openInterest:accurateOICurrent||0};
+  lastQuoteData=c;currentName=c.name||currentName;
   if(priceHistory.length===0||priceHistory[priceHistory.length-1]!==futuresPrice)priceHistory.push(futuresPrice);
   if(priceHistory.length>120)priceHistory.shift();
   if(klineData&&klineData.length>0)updateLatestKlineCandle(futuresPrice,c.high,c.low,c.volume);
-  updateFuturesDisplay(c,isClosing);
-  calculateSignals();
-  updateOpenInterest(c);
-  updateExitSignals();
-  updateTabPrices();
-  updateStockCycleAuto();
+  updateFuturesDisplay(c,isClosing);if(accurateOICurrent>0)updateFuturesOpenInterestDisplay(accurateOICurrent);
+  calculateSignals();updateOpenInterest(c);updateExitSignals();updateTabPrices();updateStockCycleAuto();
 }
 function updateFuturesDisplay(c,isClosing){
   var change=c.change!==undefined?c.change:(c.preClose?futuresPrice-c.preClose:0);
@@ -520,11 +550,14 @@ function updateExitSignals(){
     exitStructure.innerHTML='<span class="exit-dot" style="background:#ef4444;"></span><span>结构反转：升贴水方向已逆转！（❗强烈离场信号）</span>';
   }else{exitStructure.className='exit-item';exitStructure.innerHTML='<span class="exit-dot" style="background:#9ca3af;"></span><span>结构正常：升贴水结构未发生逆转</span>';}
   if(c){c.oldBasis=basis;}
-  var oiCurrent=document.getElementById('oiCurrent').textContent;
-  if(oiCurrent.indexOf('↓')>-1||oiCurrent.indexOf('下降')>-1){
+  if(accurateOIReady&&accurateOIChangePct<=-20){
     exitOI.className='exit-item exit-danger active';
-    exitOI.innerHTML='<span class="exit-dot" style="background:#ef4444;"></span><span>持仓下降：持仓量明显缩减（❗行情可能接近尾声）</span>';
-  }else{exitOI.className='exit-item';exitOI.innerHTML='<span class="exit-dot" style="background:#9ca3af;"></span><span>持仓正常：持仓量没有大幅变化</span>';}
+    exitOI.innerHTML='<span class="exit-dot" style="background:#ef4444;"></span><span>持仓大降：较上一交易日下降'+Math.abs(accurateOIChangePct).toFixed(1)+'%（❗行情可能接近尾声）</span>';
+  }else if(accurateOIReady&&accurateOIChangePct<=-5){
+    exitOI.className='exit-item exit-watch active';
+    exitOI.innerHTML='<span class="exit-dot" style="background:#f59e0b;"></span><span>持仓下降：较上一交易日下降'+Math.abs(accurateOIChangePct).toFixed(1)+'%（⚠️关注资金离场）</span>';
+  }else if(accurateOIReady){exitOI.className='exit-item';exitOI.innerHTML='<span class="exit-dot" style="background:#9ca3af;"></span><span>持仓正常：较上一交易日变化'+(accurateOIChangePct>=0?'+':'')+accurateOIChangePct.toFixed(1)+'%</span>';}
+  else{exitOI.className='exit-item';exitOI.innerHTML='<span class="exit-dot" style="background:#9ca3af;"></span><span>持仓数据加载中，暂不判断离场信号</span>';}
   if(priceHistory.length>=5){
     var recent=priceHistory.slice(-5),high5=Math.max.apply(null,recent),low5=Math.min.apply(null,recent);
     var broken=false;
@@ -534,64 +567,27 @@ function updateExitSignals(){
   }
 }
 
-// ============ 持仓量分析（数据来源：K线每日持仓+实时行情）============
-function extractDailyOIFromKline(klines){
-  dailyOIHistory=[];
-  if(!klines||klines.length===0)return;
-  klines.forEach(function(k){
-    var p=k.split(',');
-    if(p.length>=8){var oi=parseFloat(p[7]);if(oi>0)dailyOIHistory.push({date:p[0],oi:oi});}
-  });
-  var seen={},deduped=[];
-  dailyOIHistory.forEach(function(d){seen[d.date]=d;});
-  Object.keys(seen).sort().forEach(function(k){deduped.push(seen[k]);});
-  dailyOIHistory=deduped;
-  console.log('OI history: '+dailyOIHistory.length+' trading days');
-}
+// ============ 持仓量分析（新浪期货同源实时+历史数据）============
 function updateOpenInterest(c){
-  var oi=c.openInterest||0;
-  var mk=isMarketOpen();
-  var oiCur=document.getElementById('oiCurrent');
-  oiCur.textContent=oi>0?oi.toLocaleString()+' 手':'--';
-  var preOI=0,preDate='--';
-  if(dailyOIHistory.length>0){var lo=dailyOIHistory[dailyOIHistory.length-1];preOI=lo.oi;preDate=lo.date;}
-  var change=oi-preOI,changePct=preOI>0?change/preOI*100:0;
-  var chEl=document.getElementById('oiChange'),chTxt;
-  if(oi>0&&preOI>0&&mk.open){
-    chTxt=(change>=0?'+':'')+change.toLocaleString()+' 手 ('+(changePct>=0?'+':'')+changePct.toFixed(2)+'%)';
-    chEl.className='factor-val '+(change>=0?'up':'down');
-  }else if(oi>0&&preOI>0&&!mk.open){
-    chTxt=(change>=0?'+':'')+change.toLocaleString()+' 手 ('+(changePct>=0?'+':'')+changePct.toFixed(2)+'%) [结算值]';
-    chEl.className='factor-val neutral';
-  }else if(oi>0){chTxt='较'+preDate+': +'+change.toLocaleString()+' 手';chEl.className='factor-val';}
-  else{chTxt='--';chEl.className='factor-val';}
-  chEl.textContent=chTxt;
-  var oi5='--';
-  if(dailyOIHistory.length>=5){
-    var s=0;dailyOIHistory.slice(-5).forEach(function(d){s+=d.oi;});
-    oi5=Math.round(s/5).toLocaleString()+' 手';
-  }else if(dailyOIHistory.length>=2){
-    var s2=0;dailyOIHistory.forEach(function(d){s2+=d.oi;});
-    oi5=Math.round(s2/dailyOIHistory.length).toLocaleString()+' 手 ('+dailyOIHistory.length+'日均)';
-  }
-  document.getElementById('oi5Day').textContent=oi5;
-  var oiSig=document.getElementById('oiSignal'),oiNt=document.getElementById('oiNote');
-  if(!mk.open){
-    oiSig.textContent='休市中 — 持仓为结算数据';
-    oiSig.className='factor-val neutral';
-    oiNt.textContent='非交易时段，持仓变化为盘后结算值对比上一交易日K线，非盘中实时变动。开市后自动切换为实时分析。';
-  }else{
-    var pc=0;if(klineData&&klineData.length>=2){
-      var pc2=parseFloat(klineData[klineData.length-2].split(',')[2]);if(pc2>0)pc=(futuresPrice-pc2)/pc2*100;
-    }
-    var pd=pc>0.5?'涨':(pc<-0.5?'跌':'平');
-    if(changePct<-10){oiSig.textContent='持仓大降'+Math.abs(changePct).toFixed(1)+'% -- 强烈离场信号';oiSig.className='factor-val down';oiNt.textContent='持仓单日下降超10%，价'+pd+'。资金大规模撤离，行情尾声信号强烈。';}
-    else if(changePct<-5){oiSig.textContent='持仓下降'+Math.abs(changePct).toFixed(1)+'% -- 关注离场';oiSig.className='factor-val down';oiNt.textContent='持仓下降超5%，价'+pd+'。资金在撤离，关注后续变化。';}
-    else if(changePct>10){oiSig.textContent='持仓大增'+changePct.toFixed(1)+'% -- 新资金入场';oiSig.className='factor-val up';oiNt.textContent='持仓大幅增加，价'+pd+'。新资金入场，趋势可能加速。';}
-    else if(changePct>5){oiSig.textContent='持仓增加'+changePct.toFixed(1)+'%';oiSig.className='factor-val up';oiNt.textContent='持仓温和增加，价'+pd+'。市场参与度上升。';}
-    else if(oi>0&&preOI>0){oiSig.textContent='持仓平稳';oiSig.className='factor-val';oiNt.textContent='持仓变化不大，价'+pd+'。市场均衡状态。';}
-    else{oiSig.textContent='数据积累中...';oiSig.className='factor-val';oiNt.textContent='需要历史K线数据来计算持仓变化。数据每10秒刷新，K线每5分钟更新。';}
-  }
+  c=c||{};var mk=isMarketOpen(),oi=accurateOICurrent||0,history=accurateOIHistory||[];
+  var currentEl=document.getElementById('oiCurrent'),changeEl=document.getElementById('oiChange'),avgEl=document.getElementById('oi5Day'),sigEl=document.getElementById('oiSignal'),noteEl=document.getElementById('oiNote');
+  currentEl.textContent=oi>0?Math.round(oi).toLocaleString()+' 手':'暂不可用';
+  var nowDate=new Date(),todayStr=nowDate.getFullYear()+'-'+pad2(nowDate.getMonth()+1)+'-'+pad2(nowDate.getDate()),completed=history.filter(function(x){return x.date!==todayStr;}),previous=completed.length?completed[completed.length-1]:null;
+  if(!mk.open&&previous&&completed.length>1&&Math.abs(oi-previous.oi)/previous.oi<0.001)previous=completed[completed.length-2];
+  var previousOI=previous?previous.oi:0,change=oi-previousOI,pct=previousOI>0?change/previousOI*100:0;
+  accurateOIChangePct=pct;
+  if(oi>0&&previousOI>0){var txt=(change>=0?'+':'')+Math.round(change).toLocaleString()+' 手 ('+(pct>=0?'+':'')+pct.toFixed(2)+'%)';if(!mk.open)txt+=' [结算值]';changeEl.textContent=txt;changeEl.className='factor-val '+(mk.open?(change>=0?'up':'down'):'neutral');}
+  else{changeEl.textContent='暂不可用';changeEl.className='factor-val neutral';}
+  var avgHistory=completed;
+  var lastFive=avgHistory.slice(-5),avg='暂不可用';if(lastFive.length){var sum=0;lastFive.forEach(function(x){sum+=x.oi;});avg=Math.round(sum/lastFive.length).toLocaleString()+' 手'+(lastFive.length<5?' ('+lastFive.length+'日均)':'');}avgEl.textContent=avg;
+  if(!mk.open){sigEl.textContent='休市中 — 持仓为结算数据';sigEl.className='factor-val neutral';noteEl.textContent='非交易时段显示最近结算持仓；较昨日变化使用同一数据源的完整交易日数据，开市后恢复实时分析。';return;}
+  var prevClose=previous?previous.close:0,priceChange=prevClose>0?(futuresPrice-prevClose)/prevClose*100:0,priceDir=priceChange>0.5?'上涨':(priceChange<-0.5?'下跌':'横盘');
+  if(!accurateOIReady||!previousOI){sigEl.textContent='数据加载中';sigEl.className='factor-val neutral';noteEl.textContent='正在获取同一数据源的实时持仓和上一完整交易日持仓。';return;}
+  if(pct>5&&priceChange>0.5){sigEl.textContent='价涨仓增 — 多头趋势增强';sigEl.className='factor-val up';noteEl.textContent='价格上涨、持仓同步增加，通常表示新资金入场，趋势延续概率较高。';}
+  else if(pct<-5&&priceChange<-0.5){sigEl.textContent='价跌仓减 — 空头离场/行情偏弱';sigEl.className='factor-val down';noteEl.textContent='价格下跌、持仓同步减少，通常表示资金离场，行情可能进入尾声。';}
+  else if(pct>5&&priceChange<-0.5){sigEl.textContent='价跌仓增 — 空头力量增强';sigEl.className='factor-val down';noteEl.textContent='价格下跌、持仓增加，通常表示新的空头资金入场。';}
+  else if(pct<-5&&priceChange>0.5){sigEl.textContent='价涨仓减 — 空头回补/上涨动力待确认';sigEl.className='factor-val up';noteEl.textContent='价格上涨但持仓减少，可能是空头回补，不宜直接等同于新多头入场。';}
+  else{sigEl.textContent='价'+priceDir+'、持仓变化温和';sigEl.className='factor-val';noteEl.textContent='当前持仓变化未超过5%强信号阈值，继续观察价格与持仓是否同步。';}
 }
 // ============ 交割倒计时 ============
 function updateDeliveryCountdown(){
@@ -897,7 +893,7 @@ function renderTabs(){var bar=document.getElementById('tabBar'),html='';myContra
 function switchContract(code,mkt){
   if(code===currentContract&&mkt===currentMkt)return;
   currentContract=code;currentMkt=mkt;var c=findContract(code,mkt);currentName=c?c.name:code;
-  priceHistory=[];klineData=[];futuresPrice=0;openInterestVal=0;dailyOIHistory=[];whRawData=[];
+  priceHistory=[];klineData=[];futuresPrice=0;openInterestVal=0;dailyOIHistory=[];accurateOICurrent=0;accurateOIHistory=[];accurateOIReady=false;accurateOIChangePct=0;lastQuoteData=null;whRawData=[];
   loadContractSettings(c);
   document.getElementById('futuresPrice').textContent='加载中...';document.getElementById('futuresChange').textContent='';
   document.getElementById('dataSource').textContent='连接中...';document.getElementById('dataSource').className='badge badge-info';
@@ -905,8 +901,9 @@ function switchContract(code,mkt){
   document.getElementById('whCurrent').textContent='加载中...';
   renderTabs();updateAllModuleViews();
   fetchRealQuote();
-  fetchKlineData(currentMkt,currentContract,function(klines){klineData=klines;updateKlineChart(klines);extractDailyOIFromKline(klines);if(klines&&klines.length>0){klines.forEach(function(k){var p=k.split(',');priceHistory.push(parseFloat(p[2]));});if(priceHistory.length>120)priceHistory=priceHistory.slice(-120);}});
+  fetchKlineData(currentMkt,currentContract,function(klines){klineData=klines;updateKlineChart(klines);if(klines&&klines.length>0){klines.forEach(function(k){var p=k.split(',');priceHistory.push(parseFloat(p[2]));});if(priceHistory.length>120)priceHistory=priceHistory.slice(-120);}});
   fetchWarehouseReceiptData();
+  refreshAccurateOI(true);
   addLog('切换合约至 '+currentName);
 }
 function loadContractSettings(c){
@@ -940,11 +937,12 @@ window.onload=function(){
   updateMarketStatus();lastMarketState=isMarketOpen().open;
   updateAllModuleViews();
   fetchRealQuote();
-  fetchKlineData(currentMkt,currentContract,function(klines){klineData=klines;updateKlineChart(klines);extractDailyOIFromKline(klines);if(klines&&klines.length>0){klines.forEach(function(k){var p=k.split(',');priceHistory.push(parseFloat(p[2]));});if(priceHistory.length>120)priceHistory=priceHistory.slice(-120);calculateSignals();}});
+  fetchKlineData(currentMkt,currentContract,function(klines){klineData=klines;updateKlineChart(klines);if(klines&&klines.length>0){klines.forEach(function(k){var p=k.split(',');priceHistory.push(parseFloat(p[2]));});if(priceHistory.length>120)priceHistory=priceHistory.slice(-120);calculateSignals();}});
   fetchWarehouseReceiptData();
+  refreshAccurateOI(true);
   setInterval(function(){var open=updateMarketStatus();if(open!==lastMarketState){if(open){fetchRealQuote(true);addLog('市场开市');}else{addLog('市场收盘');}lastMarketState=open;}},1000);
-  setInterval(fetchRealQuote,10000);
-  setInterval(function(){var st=isMarketOpen();if(st.open)fetchKlineData(currentMkt,currentContract,function(klines){klineData=klines;updateKlineChart(klines);extractDailyOIFromKline(klines);});},300000);
+  setInterval(function(){fetchRealQuote();fetchAccurateOICurrent();},10000);
+  setInterval(function(){var st=isMarketOpen();if(st.open){fetchKlineData(currentMkt,currentContract,function(klines){klineData=klines;updateKlineChart(klines);});fetchAccurateOIHistory();}},300000);
   var st=isMarketOpen();addLog('系统启动（七大模块自动版） '+currentName+'。'+(st.open?'开市中（'+st.session+'）':'休市（'+st.reason+'）')+'。仓单和库存周期已实现全自动化。');
 };
 window.addEventListener('resize',function(){if(klineChart)klineChart.resize();});
