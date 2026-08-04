@@ -550,15 +550,19 @@ function extractDailyOIFromKline(klines){
 }
 function updateOpenInterest(c){
   var oi=c.openInterest||0;
+  var mk=isMarketOpen();
   var oiCur=document.getElementById('oiCurrent');
   oiCur.textContent=oi>0?oi.toLocaleString()+' 手':'--';
   var preOI=0,preDate='--';
   if(dailyOIHistory.length>0){var lo=dailyOIHistory[dailyOIHistory.length-1];preOI=lo.oi;preDate=lo.date;}
   var change=oi-preOI,changePct=preOI>0?change/preOI*100:0;
   var chEl=document.getElementById('oiChange'),chTxt;
-  if(oi>0&&preOI>0){
+  if(oi>0&&preOI>0&&mk.open){
     chTxt=(change>=0?'+':'')+change.toLocaleString()+' 手 ('+(changePct>=0?'+':'')+changePct.toFixed(2)+'%)';
     chEl.className='factor-val '+(change>=0?'up':'down');
+  }else if(oi>0&&preOI>0&&!mk.open){
+    chTxt=(change>=0?'+':'')+change.toLocaleString()+' 手 ('+(changePct>=0?'+':'')+changePct.toFixed(2)+'%) [结算值]';
+    chEl.className='factor-val neutral';
   }else if(oi>0){chTxt='较'+preDate+': +'+change.toLocaleString()+' 手';chEl.className='factor-val';}
   else{chTxt='--';chEl.className='factor-val';}
   chEl.textContent=chTxt;
@@ -572,16 +576,22 @@ function updateOpenInterest(c){
   }
   document.getElementById('oi5Day').textContent=oi5;
   var oiSig=document.getElementById('oiSignal'),oiNt=document.getElementById('oiNote');
-  var pc=0;if(klineData&&klineData.length>=2){
-    var pc2=parseFloat(klineData[klineData.length-2].split(',')[2]);if(pc2>0)pc=(futuresPrice-pc2)/pc2*100;
+  if(!mk.open){
+    oiSig.textContent='休市中 — 持仓为结算数据';
+    oiSig.className='factor-val neutral';
+    oiNt.textContent='非交易时段，持仓变化为盘后结算值对比上一交易日K线，非盘中实时变动。开市后自动切换为实时分析。';
+  }else{
+    var pc=0;if(klineData&&klineData.length>=2){
+      var pc2=parseFloat(klineData[klineData.length-2].split(',')[2]);if(pc2>0)pc=(futuresPrice-pc2)/pc2*100;
+    }
+    var pd=pc>0.5?'涨':(pc<-0.5?'跌':'平');
+    if(changePct<-10){oiSig.textContent='持仓大降'+Math.abs(changePct).toFixed(1)+'% -- 强烈离场信号';oiSig.className='factor-val down';oiNt.textContent='持仓单日下降超10%，价'+pd+'。资金大规模撤离，行情尾声信号强烈。';}
+    else if(changePct<-5){oiSig.textContent='持仓下降'+Math.abs(changePct).toFixed(1)+'% -- 关注离场';oiSig.className='factor-val down';oiNt.textContent='持仓下降超5%，价'+pd+'。资金在撤离，关注后续变化。';}
+    else if(changePct>10){oiSig.textContent='持仓大增'+changePct.toFixed(1)+'% -- 新资金入场';oiSig.className='factor-val up';oiNt.textContent='持仓大幅增加，价'+pd+'。新资金入场，趋势可能加速。';}
+    else if(changePct>5){oiSig.textContent='持仓增加'+changePct.toFixed(1)+'%';oiSig.className='factor-val up';oiNt.textContent='持仓温和增加，价'+pd+'。市场参与度上升。';}
+    else if(oi>0&&preOI>0){oiSig.textContent='持仓平稳';oiSig.className='factor-val';oiNt.textContent='持仓变化不大，价'+pd+'。市场均衡状态。';}
+    else{oiSig.textContent='数据积累中...';oiSig.className='factor-val';oiNt.textContent='需要历史K线数据来计算持仓变化。数据每10秒刷新，K线每5分钟更新。';}
   }
-  var pd=pc>0.5?'涨':(pc<-0.5?'跌':'平');
-  if(changePct<-10){oiSig.textContent='持仓大降'+Math.abs(changePct).toFixed(1)+'% -- 强烈离场信号';oiSig.className='factor-val down';oiNt.textContent='持仓单日下降超10%，价'+pd+'。资金大规模撤离，行情尾声信号强烈。';}
-  else if(changePct<-5){oiSig.textContent='持仓下降'+Math.abs(changePct).toFixed(1)+'% -- 关注离场';oiSig.className='factor-val down';oiNt.textContent='持仓下降超5%，价'+pd+'。资金在撤离，关注后续变化。';}
-  else if(changePct>10){oiSig.textContent='持仓大增'+changePct.toFixed(1)+'% -- 新资金入场';oiSig.className='factor-val up';oiNt.textContent='持仓大幅增加，价'+pd+'。新资金入场，趋势可能加速。';}
-  else if(changePct>5){oiSig.textContent='持仓增加'+changePct.toFixed(1)+'%';oiSig.className='factor-val up';oiNt.textContent='持仓温和增加，价'+pd+'。市场参与度上升。';}
-  else if(oi>0&&preOI>0){oiSig.textContent='持仓平稳';oiSig.className='factor-val';oiNt.textContent='持仓变化不大，价'+pd+'。市场均衡状态。';}
-  else{oiSig.textContent='数据积累中...';oiSig.className='factor-val';oiNt.textContent='需要历史K线数据来计算持仓变化。数据每10秒刷新，K线每5分钟更新。';}
 }
 // ============ 交割倒计时 ============
 function updateDeliveryCountdown(){
