@@ -127,7 +127,31 @@
     .quadrant-info { font-size:0.78rem; line-height:1.6; }
 
     /* 产业链 */
-    .chain-svg { width:100%; max-width:400px; margin:0 auto; display:block; }
+    .chain-shell { width:100%; padding:12px; border:1px solid #dbeafe; border-radius:14px; background:linear-gradient(145deg,#f8fbff 0%,#ffffff 55%,#f8fafc 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,0.9); }
+    .chain-summary { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:0 2px 10px; border-bottom:1px solid #e5edf8; }
+    .chain-name { font-size:0.92rem; font-weight:700; color:#1e3a8a; }
+    .chain-contract { flex-shrink:0; padding:3px 9px; border-radius:999px; background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe; font-size:0.68rem; font-weight:700; }
+    .chain-flow { display:flex; align-items:stretch; justify-content:center; gap:8px; padding:14px 0 8px; overflow-x:auto; scrollbar-width:thin; }
+    .chain-stage { min-width:112px; flex:1 1 0; padding:10px; border-radius:12px; border:1px solid #e5e7eb; position:relative; overflow:hidden; }
+    .chain-stage:before { content:""; position:absolute; left:0; top:0; right:0; height:3px; }
+    .chain-stage-up { background:linear-gradient(180deg,#f0fdf4 0%,#ffffff 100%); }
+    .chain-stage-up:before { background:#22c55e; }
+    .chain-stage-mid { background:linear-gradient(180deg,#fffbeb 0%,#ffffff 100%); }
+    .chain-stage-mid:before { background:#f59e0b; }
+    .chain-stage-down { background:linear-gradient(180deg,#eff6ff 0%,#ffffff 100%); }
+    .chain-stage-down:before { background:#3b82f6; }
+    .chain-stage-title { display:flex; align-items:center; gap:6px; margin-bottom:8px; color:#374151; font-size:0.72rem; font-weight:700; }
+    .chain-stage-no { width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; border-radius:7px; background:rgba(255,255,255,0.9); border:1px solid rgba(148,163,184,0.35); font-size:0.66rem; }
+    .chain-node-list { display:flex; flex-direction:column; gap:6px; }
+    .chain-node { min-height:34px; padding:7px 8px; border:1px solid #e5e7eb; border-radius:9px; background:#ffffff; color:#334155; font-size:0.76rem; font-weight:600; text-align:center; display:flex; align-items:center; justify-content:center; line-height:1.25; box-shadow:0 2px 7px rgba(15,23,42,0.05); }
+    .chain-node.current { color:#1d4ed8; border-color:#60a5fa; background:linear-gradient(135deg,#dbeafe,#eff6ff); box-shadow:0 0 0 2px rgba(59,130,246,0.12),0 4px 10px rgba(37,99,235,0.12); }
+    .chain-node.current:after { content:"当前"; margin-left:5px; padding:1px 4px; border-radius:4px; background:#2563eb; color:#fff; font-size:0.55rem; font-weight:700; }
+    .chain-arrow { width:26px; flex:0 0 26px; align-self:center; height:28px; position:relative; }
+    .chain-arrow:before { content:""; position:absolute; left:1px; right:7px; top:13px; height:2px; background:linear-gradient(90deg,#94a3b8,#3b82f6); border-radius:2px; }
+    .chain-arrow:after { content:""; position:absolute; right:2px; top:8px; width:9px; height:9px; border-top:2px solid #3b82f6; border-right:2px solid #3b82f6; transform:rotate(45deg); }
+    .chain-note { display:flex; align-items:flex-start; gap:6px; margin-top:8px; padding-top:8px; border-top:1px dashed #dbe3ef; color:#64748b; font-size:0.68rem; line-height:1.5; }
+    .chain-empty { width:100%; min-height:180px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px; color:var(--muted); text-align:center; padding:20px; }
+    .chain-empty-mark { width:44px; height:44px; border-radius:14px; display:flex; align-items:center; justify-content:center; background:#f1f5f9; color:#94a3b8; font-weight:700; font-size:0.72rem; }
 
     /* 互补品 */
     .comp-row { display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px dashed var(--border); font-size:0.82rem; }
@@ -166,6 +190,13 @@
       .countdown-num { font-size:1.4rem; }
       .wh-num { font-size:1.1rem; }
       .quadrant-wrap { flex-direction:column; align-items:flex-start; }
+      .chain-shell { padding:10px; }
+      .chain-flow { flex-direction:column; overflow:visible; gap:5px; padding:12px 0 6px; }
+      .chain-stage { width:100%; min-width:0; padding:10px; }
+      .chain-node-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .chain-node-list .chain-node:only-child { grid-column:1/-1; }
+      .chain-arrow { width:28px; height:22px; flex-basis:22px; align-self:center; transform:rotate(90deg); }
+      .chain-summary { align-items:flex-start; }
     }
     @media (max-width:380px) { .big-number { font-size:1.5rem; } .kline-container { height:220px; } .tab { padding:6px 10px; font-size:0.78rem; } header h1 { font-size:0.95rem; } .info-row { font-size:0.72rem; } .legend { font-size:0.62rem; } .countdown-num { font-size:1.2rem; } .wh-num { font-size:1rem; } }
   </style>
@@ -284,8 +315,8 @@
     <!-- 10. 产业链图谱 -->
     <div class="card">
       <h2>🏭 产业链图谱 <span class="badge badge-info" style="font-size:0.65rem;">静态关系</span></h2>
-      <div id="chainContainer" style="min-height:180px;display:flex;align-items:center;justify-content:center;">
-        <span style="color:var(--muted);">请选择合约查看产业链</span>
+      <div id="chainContainer">
+        <div class="chain-empty"><div class="chain-empty-mark">产业链</div><span>请选择合约查看产业链</span></div>
       </div>
     </div>
 
@@ -786,34 +817,15 @@ function svgQuadrant(highlight){
 
 // ============ 产业链图谱 ============
 var CHAIN_DATA={
-  'SR':{name:'白糖产业链',nodes:[
-    {label:'甘蔗/甜菜',x:10,y:80,color:'#86efac'},{label:'白糖',x:170,y:40,color:'#fef08a'},{label:'乙醇',x:170,y:120,color:'#fca5a5'},
-    {label:'食品饮料',x:310,y:40,color:'#bfdbfe'},{label:'化工/燃料',x:310,y:120,color:'#e9d5ff'}
-  ],edges:[[0,1],[0,2],[1,3],[2,4]],multiplier:1},
-  'rb':{name:'黑色系产业链',nodes:[
-    {label:'焦煤',x:10,y:30,color:'#d1d5db'},{label:'铁矿石',x:10,y:50,color:'#fbdba5'},{label:'焦炭',x:170,y:30,color:'#d1d5db'},
-    {label:'螺纹钢',x:310,y:20,color:'#bfdbfe'},{label:'热轧卷板',x:310,y:50,color:'#bfdbfe'},{label:'线材',x:310,y:80,color:'#bfdbfe'}
-  ],edges:[[0,2],[1,2],[2,3],[2,4],[2,5]],multiplier:1},
-  'a':{name:'大豆产业链',nodes:[
-    {label:'大豆',x:10,y:80,color:'#86efac'},{label:'豆粕',x:170,y:30,color:'#fef08a'},{label:'豆油',x:170,y:130,color:'#fef08a'},
-    {label:'饲料',x:310,y:30,color:'#bfdbfe'},{label:'食用油',x:310,y:130,color:'#bfdbfe'}
-  ],edges:[[0,1],[0,2],[1,3],[2,4]],multiplier:1},
-  'CF':{name:'棉花产业链',nodes:[
-    {label:'棉花',x:10,y:80,color:'#86efac'},{label:'棉纱',x:170,y:50,color:'#fef08a'},{label:'纺织面料',x:310,y:80,color:'#bfdbfe'}
-  ],edges:[[0,1],[1,2]],multiplier:1},
-  'sc':{name:'原油产业链',nodes:[
-    {label:'原油',x:10,y:80,color:'#1f2937'},{label:'沥青',x:170,y:20,color:'#fef08a'},{label:'燃料油',x:170,y:50,color:'#fef08a'},
-    {label:'PTA',x:170,y:80,color:'#fef08a'},{label:'塑料/PP',x:170,y:110,color:'#fef08a'},{label:'乙二醇',x:170,y:140,color:'#fef08a'}
-  ],edges:[[0,1],[0,2],[0,3],[0,4],[0,5]],multiplier:1},
-  'cu':{name:'有色产业链',nodes:[
-    {label:'铜矿',x:10,y:40,color:'#fbdba5'},{label:'电解铜',x:170,y:40,color:'#fef08a'},
-    {label:'电力/电子',x:310,y:20,color:'#bfdbfe'},{label:'建筑/汽车',x:310,y:60,color:'#bfdbfe'}
-  ],edges:[[0,1],[1,2],[1,3]],multiplier:1},
-  'i':{name:'黑色系产业链',nodes:[
-    {label:'焦煤',x:10,y:30,color:'#d1d5db'},{label:'铁矿石',x:10,y:50,color:'#fbdba5'},{label:'焦炭',x:170,y:30,color:'#d1d5db'},
-    {label:'螺纹钢',x:310,y:20,color:'#bfdbfe'},{label:'热轧卷板',x:310,y:50,color:'#bfdbfe'},{label:'线材',x:310,y:80,color:'#bfdbfe'}
-  ],edges:[[0,2],[1,2],[2,3],[2,4],[2,5]],multiplier:1}
+  'SR':{name:'白糖产业链',up:['甘蔗','甜菜'],mid:['制糖加工','白糖','糖蜜/乙醇'],down:['食品饮料','烘焙糖果','化工燃料'],note:'上游种植和天气影响原料供应，中游开工与进口影响糖源，下游消费具有节假日和季节性。'},
+  'rb':{name:'黑色金属产业链',up:['铁矿石','焦煤'],mid:['焦炭','高炉炼钢','粗钢'],down:['螺纹钢','热轧卷板','线材'],note:'矿焦成本影响钢厂利润，钢厂开工决定原料需求，终端主要看地产、基建和制造业。'},
+  'a':{name:'大豆压榨产业链',up:['进口大豆','国产大豆'],mid:['油厂压榨','豆粕','豆油'],down:['饲料养殖','食用油','食品加工'],note:'大豆到港和压榨量决定供应，豆粕偏养殖需求，豆油偏餐饮消费及油脂替代。'},
+  'CF':{name:'棉纺产业链',up:['籽棉','皮棉'],mid:['棉花','纺纱','棉纱'],down:['坯布面料','服装家纺','出口订单'],note:'种植面积和天气影响供给，轧花与纺纱连接上下游，终端订单决定补库力度。'},
+  'sc':{name:'原油化工产业链',up:['原油','天然气'],mid:['炼油','石脑油','芳烃/烯烃'],down:['沥青/燃料油','PTA/乙二醇','塑料/PP'],note:'原油是能源化工成本锚，炼化利润影响开工，下游需求分布在交通、地产、纺织和包装。'},
+  'cu':{name:'有色金属产业链',up:['矿山资源','铜矿/精矿'],mid:['冶炼加工','电解铜','金属材料'],down:['电力电子','建筑家电','汽车新能源'],note:'矿端扰动影响精矿供应，冶炼加工费反映中游松紧，下游需求重点看电网、地产和制造业。'},
+  'i':null
 };
+CHAIN_DATA['i']=CHAIN_DATA['rb'];
 ['J','JM','HC','WR'].forEach(function(v){CHAIN_DATA[v]=CHAIN_DATA['rb'];});
 ['Y','M','RM','OI','P'].forEach(function(v){CHAIN_DATA[v]=CHAIN_DATA['a'];});
 ['CY'].forEach(function(v){CHAIN_DATA[v]=CHAIN_DATA['CF'];});
@@ -821,24 +833,85 @@ var CHAIN_DATA={
 ['AL','ZN','PB','SN','NI','AU','AG'].forEach(function(v){CHAIN_DATA[v]=CHAIN_DATA['cu'];});
 Object.keys(CHAIN_DATA).forEach(function(k){CHAIN_DATA[k.toUpperCase()]=CHAIN_DATA[k];});
 
+var CHAIN_FOCUS={
+  'SR':'白糖','RB':'螺纹钢','HC':'热轧卷板','WR':'线材','I':'铁矿石','J':'焦炭','JM':'焦煤',
+  'A':'国产大豆','M':'豆粕','Y':'豆油','CF':'棉花','CY':'棉纱','SC':'原油',
+  'BU':'沥青/燃料油','FU':'沥青/燃料油','TA':'PTA/乙二醇','EG':'PTA/乙二醇',
+  'L':'塑料/PP','PP':'塑料/PP','CU':'电解铜'
+};
+
+function appendChainStage(flow,title,no,className,items,focus){
+  var stage=document.createElement('div');
+  stage.className='chain-stage '+className;
+  var heading=document.createElement('div');
+  heading.className='chain-stage-title';
+  var number=document.createElement('span');
+  number.className='chain-stage-no';
+  number.textContent=no;
+  heading.appendChild(number);
+  heading.appendChild(document.createTextNode(title));
+  stage.appendChild(heading);
+  var list=document.createElement('div');
+  list.className='chain-node-list';
+  items.forEach(function(label){
+    var node=document.createElement('div');
+    node.className='chain-node'+(label===focus?' current':'');
+    node.textContent=label;
+    list.appendChild(node);
+  });
+  stage.appendChild(list);
+  flow.appendChild(stage);
+}
+
+function appendChainArrow(flow){
+  var arrow=document.createElement('div');
+  arrow.className='chain-arrow';
+  arrow.setAttribute('aria-hidden','true');
+  flow.appendChild(arrow);
+}
+
 function updateSupplyChain(){
   var v=normalizeVarietyKey(currentContract),chain=CHAIN_DATA[v];
   var container=document.getElementById('chainContainer');
-  if(!chain){container.innerHTML='<span style="color:var(--muted);">该品种暂无产业链图谱数据</span>';return;}
-  var svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 160" width="100%" style="max-width:380px;">';
-  chain.edges.forEach(function(e){
-    var from=chain.nodes[e[0]],to=chain.nodes[e[1]];
-    svg+='<line x1="'+(from.x+35)+'" y1="'+from.y+'" x2="'+(to.x-5)+'" y2="'+to.y+'" stroke="#9ca3af" stroke-width="1.5" marker-end="url(#arrow)"/>';
-  });
-  svg+='<defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#9ca3af"/></marker></defs>';
-  chain.nodes.forEach(function(n){
-    var tw=n.label.length*12+16,th=20;
-    svg+='<rect x="'+(n.x-tw/2+18)+'" y="'+(n.y-th/2)+'" width="'+tw+'" height="'+th+'" rx="10" fill="'+n.color+'" stroke="#d1d5db" stroke-width="1"/>';
-    svg+='<text x="'+n.x+'" y="'+(n.y+4)+'" font-size="11" font-weight="600" fill="#1f2937" text-anchor="middle">'+n.label+'</text>';
-  });
-  svg+='<text x="190" y="155" font-size="10" fill="#6b7280" text-anchor="middle">'+chain.name+'</text>';
-  svg+='</svg>';
-  container.innerHTML=svg;
+  container.innerHTML='';
+  if(!chain){
+    var empty=document.createElement('div');
+    empty.className='chain-empty';
+    var mark=document.createElement('div');
+    mark.className='chain-empty-mark';
+    mark.textContent='待补充';
+    var text=document.createElement('span');
+    text.textContent='该品种暂无产业链图谱数据';
+    empty.appendChild(mark);empty.appendChild(text);container.appendChild(empty);return;
+  }
+  var shell=document.createElement('div');
+  shell.className='chain-shell';
+  var summary=document.createElement('div');
+  summary.className='chain-summary';
+  var name=document.createElement('div');
+  name.className='chain-name';
+  name.textContent=chain.name;
+  var contract=document.createElement('div');
+  contract.className='chain-contract';
+  contract.textContent=currentName||currentContract;
+  summary.appendChild(name);summary.appendChild(contract);shell.appendChild(summary);
+  var flow=document.createElement('div');
+  flow.className='chain-flow';
+  var focus=CHAIN_FOCUS[String(v).toUpperCase()]||'';
+  appendChainStage(flow,'上游原料','01','chain-stage-up',chain.up,focus);
+  appendChainArrow(flow);
+  appendChainStage(flow,'中游加工','02','chain-stage-mid',chain.mid,focus);
+  appendChainArrow(flow);
+  appendChainStage(flow,'下游需求','03','chain-stage-down',chain.down,focus);
+  shell.appendChild(flow);
+  var note=document.createElement('div');
+  note.className='chain-note';
+  var noteLabel=document.createElement('strong');
+  noteLabel.textContent='观察重点：';
+  note.appendChild(noteLabel);
+  note.appendChild(document.createTextNode(chain.note));
+  shell.appendChild(note);
+  container.appendChild(shell);
 }
 
 // ============ 互补品/替代品监控 ============
