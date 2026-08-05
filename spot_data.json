@@ -1,6 +1,7 @@
 {
-  "update_time": "2026-08-05 11:07",
+  "update_time": "2026-08-05 17:25",
   "data_published": "2026-08-04 17:00",
+  "data_status": "生意社当日(08-05)17:00快照尚未发布，本次抓取(17:25)页面上最新仍为08-04快照，数据内容经核对无变动。",
   "timezone": "Asia/Shanghai",
   "frequency": "daily_snapshot",
   "source": "生意社(100ppi.com)现货快照",
