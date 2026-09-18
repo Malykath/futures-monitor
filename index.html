@@ -396,7 +396,7 @@ function getPriceDecimals(){return lastQuoteData&&isFinite(lastQuoteData.digits)
 function isPresentNumber(value){return value!==null&&value!==undefined&&value!==''&&isFinite(Number(value));}
 function isRealNumber(value){return typeof value==='number'&&isFinite(value);}
 function formatPrice(value){return isRealNumber(value)?Number(value).toFixed(getPriceDecimals()):'--';}
-function canUseTodayAsCompletedDailyBar(){var now=new Date(),day=now.getDay();if(day===0||day===6)return false;var minutes=now.getHours()*60+now.getMinutes();return minutes>=900&&minutes<1260;}
+function canUseTodayAsCompletedDailyBar(){var now=new Date(),day=now.getDay();if(day===0||day===6)return false;var minutes=now.getHours()*60+now.getMinutes();return minutes>=900;}
 function getCompletedDailyKlines(){var now=new Date(),todayStr=now.getFullYear()+'-'+pad2(now.getMonth()+1)+'-'+pad2(now.getDate()),includeToday=canUseTodayAsCompletedDailyBar();return(klineData||[]).filter(function(k){var date=String(k).split(',')[0];return date&&(date<todayStr||(includeToday&&date===todayStr));});}
 function syncDailyCloseHistory(){dailyCloseHistory=getCompletedDailyKlines().map(function(k){var p=String(k).split(','),n=parseFloat(p[2]);return isFinite(n)?n:null;}).filter(function(n){return n!==null;});if(dailyCloseHistory.length>120)dailyCloseHistory=dailyCloseHistory.slice(-120);}
 function getQuoteMarket(mkt){return Number(mkt)===8?220:Number(mkt);}
