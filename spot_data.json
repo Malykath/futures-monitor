@@ -1,6 +1,6 @@
 {
-  "update_time": "2026-09-30 16:02",
-  "data_published": "2026-09-30 17:00",
+  "update_time": "2026-10-01 16:39",
+  "data_published": "2026-10-01 17:00",
   "timezone": "Asia/Shanghai",
   "frequency": "daily_snapshot",
   "source": "生意社(100ppi.com)现货快照",
@@ -17,7 +17,7 @@
     "BZ": 10151.0,
     "EG": 6400.0,
     "SH": 635.0,
-    "MA": 4460.0,
+    "MA": 4493.33,
     "V": 4865.0,
     "BR": 16175.0,
     "L": 9390.0,
@@ -90,16 +90,16 @@
     {
       "name": "WTI原油",
       "spot_price": 89.38,
-      "previous_price": 92.6,
-      "change_text": "-3.6%",
+      "previous_price": 89.38,
+      "change_text": "0%",
       "unit": "美元/桶",
       "spec": "WTI原油"
     },
     {
       "name": "炼焦煤",
       "spot_price": 2333.75,
-      "previous_price": 2358.75,
-      "change_text": "-1.07%",
+      "previous_price": 2333.75,
+      "change_text": "0%",
       "unit": "元/吨",
       "spec": "焦煤"
     },
@@ -114,88 +114,88 @@
     {
       "name": "纯苯",
       "spot_price": 10151.0,
-      "previous_price": 10084.33,
-      "change_text": "0.66%",
+      "previous_price": 10151.0,
+      "change_text": "0%",
       "unit": "元/吨",
       "spec": "优级品"
     },
     {
       "name": "乙二醇",
       "spot_price": 6400.0,
-      "previous_price": 6558.33,
-      "change_text": "-2.47%",
+      "previous_price": 6400.0,
+      "change_text": "0%",
       "unit": "元/吨",
       "spec": "≥99.9% 聚酯级"
     },
     {
       "name": "烧碱",
       "spot_price": 635.0,
-      "previous_price": 637.0,
-      "change_text": "-0.31%",
+      "previous_price": 635.0,
+      "change_text": "0%",
       "unit": "元/吨",
       "spec": "32%液碱"
     },
     {
       "name": "甲醇",
-      "spot_price": 4460.0,
-      "previous_price": 4585.0,
-      "change_text": "-2.8%",
+      "spot_price": 4493.33,
+      "previous_price": 4460.0,
+      "change_text": "0.74%",
       "unit": "元/吨",
       "spec": "工业甲醇"
     },
     {
       "name": "PVC",
       "spot_price": 4865.0,
-      "previous_price": 4680.0,
-      "change_text": "3.8%",
+      "previous_price": 4865.0,
+      "change_text": "0%",
       "unit": "元/吨",
       "spec": "SG5"
     },
     {
       "name": "丁苯橡胶",
       "spot_price": 16175.0,
-      "previous_price": 15841.67,
-      "change_text": "2.06%",
+      "previous_price": 16175.0,
+      "change_text": "0%",
       "unit": "元/吨",
       "spec": "1502"
     },
     {
       "name": "LLDPE",
       "spot_price": 9390.0,
-      "previous_price": 9351.67,
-      "change_text": "0.41%",
+      "previous_price": 9390.0,
+      "change_text": "0%",
       "unit": "元/吨",
       "spec": "7042"
     },
     {
       "name": "天然橡胶",
       "spot_price": 19100.0,
-      "previous_price": 18425.0,
-      "change_text": "3.53%",
+      "previous_price": 19100.0,
+      "change_text": "0%",
       "unit": "元/吨",
       "spec": "标准胶"
     },
     {
       "name": "PP(拉丝)",
       "spot_price": 9933.33,
-      "previous_price": 9950.0,
-      "change_text": "-0.17%",
+      "previous_price": 9933.33,
+      "change_text": "0%",
       "unit": "元/吨",
       "spec": "L5E89"
     },
     {
       "name": "皮棉",
       "spot_price": 17408.33,
-      "previous_price": 17541.0,
-      "change_text": "-0.76%",
+      "previous_price": 17408.33,
+      "change_text": "0%",
       "unit": "元/吨",
       "spec": "28"
     },
     {
       "name": "PTA",
       "spot_price": 7327.25,
-      "previous_price": 7328.75,
-      "change_text": "-0.02%",
+      "previous_price": 7327.25,
+      "change_text": "0%",
       "unit": "元/吨",
       "spec": "优等品"
     },
@@ -210,96 +210,96 @@
     {
       "name": "铅",
       "spot_price": 16205.0,
-      "previous_price": 16215.0,
-      "change_text": "-0.06%",
+      "previous_price": 16205.0,
+      "change_text": "0%",
       "unit": "元/吨",
       "spec": "1#铅锭"
     },
     {
       "name": "锌",
       "spot_price": 26447.0,
-      "previous_price": 26474.0,
-      "change_text": "-0.1%",
+      "previous_price": 26447.0,
+      "change_text": "0%",
       "unit": "元/吨",
       "spec": "0#锌锭"
     },
     {
       "name": "镍",
       "spot_price": 123750.0,
-      "previous_price": 124783.33,
-      "change_text": "-0.84%",
+      "previous_price": 123750.0,
+      "change_text": "0%",
       "unit": "元/吨",
       "spec": "1#镍"
     },
     {
       "name": "铝",
       "spot_price": 24046.67,
-      "previous_price": 24126.67,
-      "change_text": "-0.33%",
+      "previous_price": 24046.67,
+      "change_text": "0%",
       "unit": "元/吨",
       "spec": "重熔用铝锭"
     },
     {
       "name": "锡",
       "spot_price": 409890.0,
-      "previous_price": 410220.0,
-      "change_text": "-0.08%",
+      "previous_price": 409890.0,
+      "change_text": "0%",
       "unit": "元/吨",
       "spec": "1#锡锭"
     },
     {
       "name": "铜",
       "spot_price": 111413.33,
-      "previous_price": 111031.67,
-      "change_text": "0.34%",
+      "previous_price": 111413.33,
+      "change_text": "0%",
       "unit": "元/吨",
       "spec": "1#电解铜"
     },
     {
       "name": "白银",
       "spot_price": 14839.33,
-      "previous_price": 14779.0,
-      "change_text": "0.41%",
+      "previous_price": 14839.33,
+      "change_text": "0%",
       "unit": "元/千克",
       "spec": "1#白银"
     },
     {
       "name": "黄金",
       "spot_price": 904.56,
-      "previous_price": 894.85,
-      "change_text": "1.07%",
+      "previous_price": 904.56,
+      "change_text": "0%",
       "unit": "元/克",
       "spec": "99.99"
     },
     {
       "name": "热轧板卷",
       "spot_price": 3302.0,
-      "previous_price": 3306.0,
-      "change_text": "-0.12%",
+      "previous_price": 3302.0,
+      "change_text": "0%",
       "unit": "元/吨",
       "spec": "普热轧板卷"
     },
     {
       "name": "线材",
       "spot_price": 3420.0,
-      "previous_price": 3412.5,
-      "change_text": "0.22%",
+      "previous_price": 3420.0,
+      "change_text": "0%",
       "unit": "元/吨",
       "spec": "高线"
     },
     {
       "name": "螺纹钢",
       "spot_price": 3200.0,
-      "previous_price": 3199.0,
-      "change_text": "0.03%",
+      "previous_price": 3200.0,
+      "change_text": "0%",
       "unit": "元/吨",
       "spec": "Ⅲ级螺纹钢"
     },
     {
       "name": "铁矿石(澳)",
       "spot_price": 689.44,
-      "previous_price": 685.67,
-      "change_text": "0.55%",
+      "previous_price": 689.44,
+      "change_text": "0%",
       "unit": "元/吨",
       "spec": "PB粉"
     },
@@ -314,16 +314,16 @@
     {
       "name": "沥青",
       "spot_price": 6312.5,
-      "previous_price": 6252.5,
-      "change_text": "0.95%",
+      "previous_price": 6312.5,
+      "change_text": "0%",
       "unit": "元/吨",
-      "spec": "重交沥青"
+      "spec": "70#"
     },
     {
       "name": "针叶木浆",
       "spot_price": 4900.0,
-      "previous_price": 4930.0,
-      "change_text": "-0.61%",
+      "previous_price": 4900.0,
+      "change_text": "0%",
       "unit": "元/吨",
       "spec": "针叶木浆"
     },
@@ -338,8 +338,8 @@
     {
       "name": "豆粕",
       "spot_price": 3400.0,
-      "previous_price": 3384.0,
-      "change_text": "0.47%",
+      "previous_price": 3400.0,
+      "change_text": "0%",
       "unit": "元/吨",
       "spec": "饲料用"
     },
@@ -354,32 +354,32 @@
     {
       "name": "大豆",
       "spot_price": 4528.0,
-      "previous_price": 4520.0,
-      "change_text": "0.18%",
+      "previous_price": 4528.0,
+      "change_text": "0%",
       "unit": "元/吨",
       "spec": "黄大豆"
     },
     {
       "name": "菜籽油",
       "spot_price": 10644.0,
-      "previous_price": 10464.0,
-      "change_text": "1.69%",
+      "previous_price": 10644.0,
+      "change_text": "0%",
       "unit": "元/吨",
       "spec": "三级"
     },
     {
       "name": "生猪",
       "spot_price": 10.2,
-      "previous_price": 10.27,
-      "change_text": "-0.69%",
+      "previous_price": 10.2,
+      "change_text": "0%",
       "unit": "元/公斤",
-      "spec": "外三元"
+      "spec": "90-100kg"
     },
     {
       "name": "鸡蛋",
       "spot_price": 8.88,
-      "previous_price": 9.22,
-      "change_text": "-3.83%",
+      "previous_price": 8.88,
+      "change_text": "0%",
       "unit": "元/公斤",
       "spec": "褐壳"
     }
