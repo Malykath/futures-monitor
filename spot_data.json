@@ -1,6 +1,6 @@
 {
-  "update_time": "2026-10-01 16:39",
-  "data_published": "2026-10-01 17:00",
+  "update_time": "2026-10-02 15:56",
+  "data_published": "2026-10-02 17:00",
   "timezone": "Asia/Shanghai",
   "frequency": "daily_snapshot",
   "source": "生意社(100ppi.com)现货快照",
@@ -40,7 +40,7 @@
     "RB": 3200.0,
     "I": 689.44,
     "FG": 12.15,
-    "BU": 6312.5,
+    "BU": 6350.0,
     "SP": 4900.0,
     "C": 2205.71,
     "M": 3400.0,
@@ -138,8 +138,8 @@
     {
       "name": "甲醇",
       "spot_price": 4493.33,
-      "previous_price": 4460.0,
-      "change_text": "0.74%",
+      "previous_price": 4493.33,
+      "change_text": "0%",
       "unit": "元/吨",
       "spec": "工业甲醇"
     },
@@ -313,9 +313,9 @@
     },
     {
       "name": "沥青",
-      "spot_price": 6312.5,
+      "spot_price": 6350.0,
       "previous_price": 6312.5,
-      "change_text": "0%",
+      "change_text": "0.59%",
       "unit": "元/吨",
       "spec": "70#"
     },
