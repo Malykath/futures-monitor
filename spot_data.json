@@ -1,6 +1,6 @@
 {
-  "update_time": "2026-10-02 15:56",
-  "data_published": "2026-10-02 17:00",
+  "update_time": "2026-10-05 18:46",
+  "data_published": "2026-10-05 17:00",
   "timezone": "Asia/Shanghai",
   "frequency": "daily_snapshot",
   "source": "生意社(100ppi.com)现货快照",
@@ -314,8 +314,8 @@
     {
       "name": "沥青",
       "spot_price": 6350.0,
-      "previous_price": 6312.5,
-      "change_text": "0.59%",
+      "previous_price": 6350.0,
+      "change_text": "0%",
       "unit": "元/吨",
       "spec": "70#"
     },
