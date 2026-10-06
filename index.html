@@ -163,6 +163,22 @@
     .comp-row { display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px dashed var(--border); font-size:0.82rem; }
     .comp-row:last-child { border-bottom:none; }
 
+    /* ARC价格行为入场 */
+    .arc-head { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:10px; }
+    .arc-signal { padding:7px 14px; border-radius:999px; color:#fff; font-size:0.86rem; font-weight:700; white-space:nowrap; }
+    .arc-wait { background:#64748b; }
+    .arc-long { background:var(--long); }
+    .arc-short { background:var(--short); }
+    .arc-watch { background:var(--neutral); }
+    .arc-danger { background:#991b1b; }
+    .arc-levels { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin-bottom:10px; }
+    .arc-level { padding:9px; border:1px solid var(--border); border-radius:9px; background:#f8fafc; text-align:center; }
+    .arc-level-name { color:var(--muted); font-size:0.68rem; }
+    .arc-level-value { font-size:1rem; font-weight:700; margin-top:2px; }
+    .arc-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px 12px; padding:10px; border-radius:9px; background:#f8fafc; border:1px solid var(--border); font-size:0.78rem; }
+    .arc-grid strong { color:#334155; }
+    .arc-rule { margin-top:10px; padding:9px 10px; border-left:3px solid #8b5cf6; border-radius:6px; background:#f5f3ff; color:#5b21b6; font-size:0.75rem; line-height:1.55; }
+
     .pwa-toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#1f2937; color:#fff; padding:12px 20px; border-radius:12px; font-size:0.85rem; z-index:999; display:none; white-space:nowrap; box-shadow:0 4px 20px rgba(0,0,0,0.3); align-items:center; gap:10px; }
     .pwa-toast.show { display:flex; }
     .pwa-toast button { background:var(--primary); color:#fff; border:none; padding:4px 12px; border-radius:14px; font-size:0.8rem; cursor:pointer; }
@@ -196,6 +212,10 @@
       .countdown-num { font-size:1.4rem; }
       .wh-num { font-size:1.1rem; }
       .quadrant-wrap { flex-direction:column; align-items:flex-start; }
+      .arc-head { flex-direction:column; }
+      .arc-signal { width:100%; text-align:center; }
+      .arc-levels { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .arc-grid { grid-template-columns:1fr; }
       .chain-shell { padding:10px; }
       .chain-flow { flex-direction:column; overflow:visible; gap:5px; padding:12px 0 6px; }
       .chain-stage { width:100%; min-width:0; padding:10px; }
@@ -213,7 +233,7 @@
   <header>
     <div>
       <h1>📊 期货实时盯盘预测系统</h1>
-      <div class="subtitle">七大模块：行情 · 四因子 · 离场信号 · 持仓量 · 交割仓单 · 产业链 · 库存周期</div>
+      <div class="subtitle">八大模块：行情 · 四因子 · ARC入场 · 离场信号 · 持仓量 · 交割仓单 · 产业链 · 库存周期</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
       <button class="install-btn" id="installBtn" onclick="installPWA()">📲 安装应用</button>
@@ -257,7 +277,31 @@
     <!-- 3. K线图 -->
     <div class="card wide"><h2>📈 近15日K线图 <span class="badge badge-ok" id="klineBadge" style="margin-left:4px;">--</span></h2><div class="kline-container" id="klineChart"></div></div>
 
-    <!-- 4. 四因子分析 -->
+    <!-- 4. ARC价格行为入场 -->
+    <div class="card wide" id="arcCard">
+      <h2>🎯 ARC价格行为入场 <span class="badge badge-info" id="arcBadge">15分钟K线</span></h2>
+      <div class="arc-head">
+        <div><div style="font-size:0.72rem;color:var(--muted);">当前机械信号</div><div style="font-weight:700;font-size:1rem;" id="arcHeadline">正在获取15分钟K线...</div></div>
+        <span class="arc-signal arc-wait" id="arcSignal">数据加载中</span>
+      </div>
+      <div class="arc-levels">
+        <div class="arc-level"><div class="arc-level-name">Swing High</div><div class="arc-level-value" id="arcSwingHigh">--</div></div>
+        <div class="arc-level"><div class="arc-level-name">Box High（前交易日高）</div><div class="arc-level-value" id="arcBoxHigh">--</div></div>
+        <div class="arc-level"><div class="arc-level-name">Box Low（前交易日低）</div><div class="arc-level-value" id="arcBoxLow">--</div></div>
+        <div class="arc-level"><div class="arc-level-name">Swing Low</div><div class="arc-level-value" id="arcSwingLow">--</div></div>
+      </div>
+      <div class="arc-grid">
+        <div><strong>价格位置：</strong><span id="arcLocation">--</span></div>
+        <div><strong>Range条件：</strong><span id="arcRange">--</span></div>
+        <div><strong>确认K线：</strong><span id="arcCandle">--</span></div>
+        <div><strong>入场参考：</strong><span id="arcEntry">--</span></div>
+        <div><strong>结构止损：</strong><span id="arcStop">--</span></div>
+        <div><strong>目标/退出：</strong><span id="arcTarget">--</span></div>
+      </div>
+      <div class="arc-rule" id="arcNote">规则来自视频作者的ARC框架：Area（关键区域）→ Range（箱体波动）→ Candle（拒绝K线确认）。只使用已经收完的K线，不在区间中部强行交易。</div>
+    </div>
+
+    <!-- 5. 四因子分析 -->
     <div class="card">
       <h2>四因子逐项分析</h2>
       <div class="factor-row"><div><div class="factor-name">① 期现基差</div><div class="factor-score">期货价 − 现货价</div></div><div style="text-align:right;"><div class="factor-val" id="basisVal">--</div><div class="factor-score" id="basisScore">--</div></div></div>
@@ -380,7 +424,7 @@ function installPWA(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.
 if(window.matchMedia('(display-mode:standalone)').matches){document.getElementById('installBtn').classList.remove('show');document.getElementById('installBanner').classList.remove('show');}
 
 // ============ 全局状态 ============
-var currentContract='SR609',currentMkt=115,currentName='白糖609',futuresPrice=0,openInterestVal=0,dailyCloseHistory=[],klineData=[],dailyOIHistory=[],accurateOICurrent=0,accurateOIHistory=[],accurateOIReady=false,accurateOIHistoryReady=false,accurateOIChangePct=null,lastQuoteData=null,oiRequestId=0,requestGeneration=0,klineChart=null;
+var currentContract='SR609',currentMkt=115,currentName='白糖609',futuresPrice=0,openInterestVal=0,dailyCloseHistory=[],klineData=[],intraday15mData=[],arcState=null,dailyOIHistory=[],accurateOICurrent=0,accurateOIHistory=[],accurateOIReady=false,accurateOIHistoryReady=false,accurateOIChangePct=null,lastQuoteData=null,oiRequestId=0,requestGeneration=0,klineChart=null;
 var dataState={quote:{status:'loading',source:'东方财富',observedAt:null,error:null},spot:{status:'loading',source:'生意社',observedAt:null,error:null},warehouse:{status:'loading',source:'东方财富数据中心',observedAt:null,error:null}};
 function setDataState(key,status,source,observedAt,error){dataState[key]={status:status,source:source||'',observedAt:observedAt||null,error:error||null};}
 function normalizeVarietyKey(code){return String(getVariety(code)||'').toUpperCase();}
@@ -551,6 +595,50 @@ function fetchKlineData(mkt,code,callback){
   jsonpFetch('https://push2his.eastmoney.com/api/qt/stock/kline/get?secid='+getQuoteMarket(requestMkt)+'.'+requestCode+'&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57,f58&klt=101&fqt=1&beg='+beg+'&end='+end+'&ut=fa5fd1943c7b386f172d6893dbfba10b&lmt=60',function(resp){if(requestCode!==currentContract||requestMkt!==currentMkt||generation!==requestGeneration)return;if(resp&&resp.data&&resp.data.klines)callback(resp.data.klines);else callback(null);},10000);
 }
 function pad2(n){return n<10?'0'+n:''+n;}
+
+// ============ ARC价格行为入场（15分钟K线）============
+function decodeFloat32Bits(value){var n=Number(value);if(!isFinite(n)||n<0||n>4294967295||Math.floor(n)!==n)return null;var buf=new ArrayBuffer(4),view=new DataView(buf);view.setUint32(0,n,false);var decoded=view.getFloat32(0,false);return isFinite(decoded)&&decoded>0?decoded:null;}
+function normalizeIntradayPrices(values,reference){
+  var raw=values.map(Number),decoded=raw.map(decodeFloat32Bits),valid=function(a){return a.every(function(x){return isFinite(x)&&x>0;})&&a[3]<=Math.min(a[0],a[1])&&a[2]>=Math.max(a[0],a[1]);};
+  var rawOK=valid(raw),decodedOK=valid(decoded),rawExtreme=raw.some(function(x){return x>1000000;}),decodedNear=decodedOK&&(!reference||decoded.every(function(x){return x>reference*0.2&&x<reference*5;}));
+  if(decodedNear&&(!rawOK||rawExtreme))return decoded;
+  return rawOK?raw:null;
+}
+function getNextWeekdayDate(dateStr){var d=new Date(dateStr+'T12:00:00');do{d.setDate(d.getDate()+1);}while(d.getDay()===0||d.getDay()===6);return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());}
+function getIntradayTradingDay(timeText){var parts=String(timeText).split(' '),date=parts[0],hm=parts[1]||'00:00',hour=parseInt(hm.split(':')[0],10);return hour>=20?getNextWeekdayDate(date):date;}
+function isCompleted15mBar(timeText){var d=new Date(String(timeText).replace(' ','T')+':00'),now=new Date();return isFinite(d.getTime())&&d.getTime()+15*60000<=now.getTime();}
+function fetchIntraday15mData(mkt,code,callback){
+  var requestMkt=mkt,requestCode=code,generation=requestGeneration;
+  var url='https://push2.eastmoney.com/api/qt/stock/trends2/get?secid='+getQuoteMarket(requestMkt)+'.'+requestCode+'&fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13&fields2=f51,f52,f53,f54,f55,f56,f57,f58&ndays=5&iscr=0&_wb='+Date.now(),xhr=new XMLHttpRequest();
+  xhr.open('GET',url,true);xhr.timeout=20000;
+  xhr.onload=function(){if(requestCode!==currentContract||requestMkt!==currentMkt||generation!==requestGeneration)return;var resp=null;try{resp=JSON.parse(xhr.responseText);}catch(e){}if(xhr.status!==200||!resp||!resp.data||!Array.isArray(resp.data.trends)){callback(null);return;}var buckets={},order=[],prevClose=Number(resp.data.preClose)||Number(resp.data.prePrice)||futuresPrice||null;resp.data.trends.forEach(function(row){var p=String(row).split(',');if(p.length<6)return;var time=p[0],hm=(time.split(' ')[1]||'00:00').split(':'),minute=parseInt(hm[1],10),bucketMinute=Math.floor(minute/15)*15,bucketTime=time.split(' ')[0]+' '+pad2(parseInt(hm[0],10))+':'+pad2(bucketMinute),close=parseFloat(p[2]),high=parseFloat(p[3]),low=parseFloat(p[4]),open=parseFloat(p[1]);if(!(close>0&&high>0&&low>0))return;if(!(open>0))open=prevClose>0?prevClose:close;prevClose=close;if(!buckets[bucketTime]){buckets[bucketTime]={time:bucketTime,day:getIntradayTradingDay(bucketTime),open:open,close:close,high:high,low:low,volume:parseFloat(p[5])||0};order.push(bucketTime);}else{var b=buckets[bucketTime];b.close=close;b.high=Math.max(b.high,high);b.low=Math.min(b.low,low);b.volume+=(parseFloat(p[5])||0);}});var bars=order.map(function(k){return buckets[k];}).filter(function(b){return isCompleted15mBar(b.time);});callback(bars);};
+  xhr.onerror=function(){callback(null);};xhr.ontimeout=function(){callback(null);};xhr.send();
+}
+function groupIntradayByDay(bars){var order=[],map={};(bars||[]).forEach(function(b){if(!map[b.day]){map[b.day]=[];order.push(b.day);}map[b.day].push(b);});return{order:order,map:map};}
+function trueRangeAverage(bars,length){length=length||14;if(!bars||bars.length<2)return null;var trs=[];for(var i=1;i<bars.length;i++){trs.push(Math.max(bars[i].high-bars[i].low,Math.abs(bars[i].high-bars[i-1].close),Math.abs(bars[i].low-bars[i-1].close)));}trs=trs.slice(-length);return trs.length?trs.reduce(function(a,b){return a+b;},0)/trs.length:null;}
+function findArcSwing(history,boxHigh,boxLow){var high=null,low=null;for(var i=history.length-1;i>=0;i--){var b=history[i];if(high===null&&b.high>boxHigh)high=b.high;if(low===null&&b.low<boxLow)low=b.low;if(high!==null&&low!==null)break;}return{high:high,low:low};}
+function isBullReject(bar){var range=bar.high-bar.low;if(!(range>0))return false;var body=Math.abs(bar.close-bar.open),lower=Math.min(bar.open,bar.close)-bar.low,upper=bar.high-Math.max(bar.open,bar.close);return lower>=Math.max(body*1.5,range*0.35)&&bar.close>=bar.low+range*0.55&&lower>upper;}
+function isBearReject(bar){var range=bar.high-bar.low;if(!(range>0))return false;var body=Math.abs(bar.close-bar.open),lower=Math.min(bar.open,bar.close)-bar.low,upper=bar.high-Math.max(bar.open,bar.close);return upper>=Math.max(body*1.5,range*0.35)&&bar.close<=bar.low+range*0.45&&upper>lower;}
+function computeArcSignal(bars){
+  var grouped=groupIntradayByDay(bars),days=grouped.order;if(days.length<3)return{ready:false,reason:'至少需要3个交易日的15分钟K线'};
+  var currentDay=days[days.length-1],prevDay=days[days.length-2],current=grouped.map[currentDay],prev=grouped.map[prevDay],history=[];days.slice(0,-1).forEach(function(d){history=history.concat(grouped.map[d]);});if(!current.length||!prev.length)return{ready:false,reason:'交易日分组数据不足'};
+  var boxHigh=Math.max.apply(null,prev.map(function(b){return b.high;})),boxLow=Math.min.apply(null,prev.map(function(b){return b.low;})),boxRange=boxHigh-boxLow;if(!(boxRange>0))return{ready:false,reason:'前一交易日箱体无效'};
+  var swing=findArcSwing(history.slice(0,-prev.length),boxHigh,boxLow),last=current[current.length-1],atr=trueRangeAverage(bars,14)||boxRange/10,tolerance=Math.max(atr*0.2,boxRange*0.03),nearLow=last.close<=boxLow+tolerance||(swing.low!==null&&last.close<=swing.low+tolerance),nearHigh=last.close>=boxHigh-tolerance||(swing.high!==null&&last.close>=swing.high-tolerance);
+  var dayHigh=Math.max.apply(null,current.map(function(b){return b.high;})),dayLow=Math.min.apply(null,current.map(function(b){return b.low;})),upMove=dayHigh-current[0].open,downMove=current[0].open-dayLow,rangeMove=Math.max(upMove,downMove),rangeOK=rangeMove>=boxRange*0.2,location=nearLow?'下方买方区域':(nearHigh?'上方卖方区域':(last.close>boxHigh?'箱体上方':(last.close<boxLow?'箱体下方':'箱体中部')));
+  var signal='等待',side='none',cls='arc-wait',headline='价格尚未形成完整入场确认',confirmText='未发现有效拒绝K线',entry=null,stop=null,target1=null,target2=null,exitWarn=false,confirmBar=null;
+  if(rangeOK&&current.length>=2){for(var i=current.length-2;i>=Math.max(0,current.length-5);i--){var c=current[i],next=current[i+1],cNearLow=c.low<=boxLow+tolerance||(swing.low!==null&&c.low<=swing.low+tolerance),cNearHigh=c.high>=boxHigh-tolerance||(swing.high!==null&&c.high>=swing.high-tolerance);if(cNearLow&&isBullReject(c)&&next.high>c.high&&next.close>c.high){side='long';signal='做多触发';cls='arc-long';headline='下方关键位出现买方拒绝，后续K线上破确认';confirmBar=c;entry=c.high;stop=c.low-Math.max(atr*0.05,boxRange*0.01);target1=entry+boxRange*0.5;target2=entry+boxRange;break;}if(cNearHigh&&isBearReject(c)&&next.low<c.low&&next.close<c.low){side='short';signal='做空触发';cls='arc-short';headline='上方关键位出现卖方拒绝，后续K线下破确认';confirmBar=c;entry=c.low;stop=c.high+Math.max(atr*0.05,boxRange*0.01);target1=entry-boxRange*0.5;target2=entry-boxRange;break;}}
+  }
+  if(side==='none'){if(!rangeOK){signal='等待Range';cls='arc-watch';headline='当日连续波动尚未达到前一日箱体的20%';}else if(location==='箱体中部'){signal='中部不交易';cls='arc-wait';headline='遵守视频原则：不要在箱体中间勉强进场';}else if(nearLow){signal='做多观察';cls='arc-watch';headline='已靠近下方关键位，等待锤子拒绝及上破确认';}else if(nearHigh){signal='做空观察';cls='arc-watch';headline='已靠近上方关键位，等待倒锤子拒绝及下破确认';}}
+  if(side==='long'&&last.high>=target1&&last.close<target1-atr*0.35)exitWarn=true;if(side==='short'&&last.low<=target1&&last.close>target1+atr*0.35)exitWarn=true;if(exitWarn){signal='半程反转警报';cls='arc-danger';headline='价格到达半程后猛烈反向，按视频规则优先退出';}
+  if(confirmBar)confirmText=(side==='long'?'锤子/长下影':'倒锤子/长上影')+' · '+confirmBar.time;
+  return{ready:true,day:currentDay,prevDay:prevDay,boxHigh:boxHigh,boxLow:boxLow,swingHigh:swing.high,swingLow:swing.low,boxRange:boxRange,rangePct:rangeMove/boxRange*100,rangeOK:rangeOK,location:location,signal:signal,side:side,cls:cls,headline:headline,confirmText:confirmText,entry:entry,stop:stop,target1:target1,target2:target2,lastTime:last.time,exitWarn:exitWarn};
+}
+function renderArcSignal(state){
+  arcState=state;var badge=document.getElementById('arcBadge'),signal=document.getElementById('arcSignal');if(!state||!state.ready){badge.textContent='数据不足';badge.className='badge badge-err';signal.textContent='暂不交易';signal.className='arc-signal arc-wait';document.getElementById('arcHeadline').textContent=state&&state.reason?state.reason:'15分钟K线暂不可用';['arcSwingHigh','arcBoxHigh','arcBoxLow','arcSwingLow'].forEach(function(id){document.getElementById(id).textContent='--';});document.getElementById('arcLocation').textContent='--';document.getElementById('arcRange').textContent='--';document.getElementById('arcCandle').textContent='--';document.getElementById('arcEntry').textContent='--';document.getElementById('arcStop').textContent='--';document.getElementById('arcTarget').textContent='--';return;}
+  badge.textContent='15分钟 · '+state.lastTime;badge.className='badge badge-ok';signal.textContent=state.signal;signal.className='arc-signal '+state.cls;document.getElementById('arcHeadline').textContent=state.headline;document.getElementById('arcSwingHigh').textContent=isRealNumber(state.swingHigh)?formatPrice(state.swingHigh):'历史中未找到';document.getElementById('arcBoxHigh').textContent=formatPrice(state.boxHigh);document.getElementById('arcBoxLow').textContent=formatPrice(state.boxLow);document.getElementById('arcSwingLow').textContent=isRealNumber(state.swingLow)?formatPrice(state.swingLow):'历史中未找到';document.getElementById('arcLocation').textContent=state.location+'（交易日 '+state.day+'）';document.getElementById('arcRange').textContent=(state.rangeOK?'达标 ':'未达标 ')+state.rangePct.toFixed(1)+'%（最低20%）';document.getElementById('arcCandle').textContent=state.confirmText;document.getElementById('arcEntry').textContent=isRealNumber(state.entry)?formatPrice(state.entry)+'（确认后）':'等待确认，不预埋单';document.getElementById('arcStop').textContent=isRealNumber(state.stop)?formatPrice(state.stop)+'（结构外）':'未触发前不计算';document.getElementById('arcTarget').textContent=isRealNumber(state.target1)?'半程 '+formatPrice(state.target1)+'；对侧 '+formatPrice(state.target2):'箱体50%—100%；半程猛烈反向则退出';document.getElementById('arcNote').textContent='Box取前一完整交易日最高/最低（含影线）；Swing取箱体外最近历史高低。夜盘归入下一交易日。ARC只负责日内入场时机，与四因子方向冲突时应降级或放弃，不承诺收益。';
+}
+function refreshArcStrategy(){fetchIntraday15mData(currentMkt,currentContract,function(bars){intraday15mData=bars||[];renderArcSignal(computeArcSignal(intraday15mData));});}
+
 function initKlineChart(){var dom=document.getElementById('klineChart');if(typeof echarts==='undefined'){dom.innerHTML='<div style="padding:30px;text-align:center;color:var(--muted);">K线图组件加载失败，但行情和其他模块仍可使用。</div>';document.getElementById('klineBadge').textContent='图表不可用';document.getElementById('klineBadge').className='badge badge-err';return;}if(klineChart)klineChart.dispose();klineChart=echarts.init(dom);}
 function updateKlineChart(rawKlines){
   if(!rawKlines||rawKlines.length===0){document.getElementById('klineBadge').textContent='无数据';document.getElementById('klineBadge').className='badge badge-err';return;}
@@ -1030,7 +1118,7 @@ function renderTabs(){var bar=document.getElementById('tabBar'),html='';myContra
 function switchContract(code,mkt){
   if(code===currentContract&&mkt===currentMkt)return;
   currentContract=code;currentMkt=mkt;requestGeneration++;var c=findContract(code,mkt);currentName=c?c.name:code;
-  dailyCloseHistory=[];klineData=[];futuresPrice=0;openInterestVal=0;dailyOIHistory=[];accurateOICurrent=0;accurateOIHistory=[];accurateOIReady=false;accurateOIHistoryReady=false;accurateOIChangePct=null;lastQuoteData=null;whRawData=[];setDataState('quote','loading','东方财富',null,null);setDataState('warehouse','loading','东方财富数据中心',null,null);
+  dailyCloseHistory=[];klineData=[];intraday15mData=[];arcState=null;renderArcSignal({ready:false,reason:'正在切换合约并获取15分钟K线'});futuresPrice=0;openInterestVal=0;dailyOIHistory=[];accurateOICurrent=0;accurateOIHistory=[];accurateOIReady=false;accurateOIHistoryReady=false;accurateOIChangePct=null;lastQuoteData=null;whRawData=[];setDataState('quote','loading','东方财富',null,null);setDataState('warehouse','loading','东方财富数据中心',null,null);
   loadContractSettings(c);
   document.getElementById('futuresPrice').textContent='加载中...';document.getElementById('futuresChange').textContent='';
   document.getElementById('dataSource').textContent='连接中...';document.getElementById('dataSource').className='badge badge-info';
@@ -1039,6 +1127,7 @@ function switchContract(code,mkt){
   renderTabs();updateAllModuleViews();
   fetchRealQuote();
   fetchKlineData(currentMkt,currentContract,function(klines){klineData=klines||[];syncDailyCloseHistory();updateKlineChart(klineData);calculateSignals();updateStockCycleAuto();});
+  refreshArcStrategy();
   fetchWarehouseReceiptData();
   refreshAccurateOI(true);
   addLog('切换合约至 '+currentName);
@@ -1076,12 +1165,13 @@ window.onload=function(){
   updateAllModuleViews();
   fetchRealQuote();
   fetchKlineData(currentMkt,currentContract,function(klines){klineData=klines||[];syncDailyCloseHistory();updateKlineChart(klineData);calculateSignals();updateStockCycleAuto();});
+  refreshArcStrategy();
   fetchWarehouseReceiptData();
   refreshAccurateOI(true);
   setInterval(function(){var open=updateMarketStatus();if(open!==lastMarketState){if(open){fetchRealQuote(true);addLog('市场开市');}else{addLog('市场收盘');}lastMarketState=open;}},1000);
   setInterval(function(){fetchRealQuote();fetchAccurateOICurrent();},10000);
-  setInterval(function(){var st=isMarketOpen();if(st.open){fetchKlineData(currentMkt,currentContract,function(klines){klineData=klines||[];syncDailyCloseHistory();updateKlineChart(klineData);calculateSignals();updateStockCycleAuto();});fetchAccurateOIHistory();}},300000);
-  var st=isMarketOpen();addLog('系统启动（七大模块自动版） '+currentName+'。'+(st.open?'开市中（'+st.session+'）':'休市（'+st.reason+'）')+'。仓单和库存周期已实现全自动化。');
+  setInterval(function(){var st=isMarketOpen();if(st.open){fetchKlineData(currentMkt,currentContract,function(klines){klineData=klines||[];syncDailyCloseHistory();updateKlineChart(klineData);calculateSignals();updateStockCycleAuto();});refreshArcStrategy();fetchAccurateOIHistory();}},300000);
+  var st=isMarketOpen();addLog('系统启动（八大模块自动版） '+currentName+'。'+(st.open?'开市中（'+st.session+'）':'休市（'+st.reason+'）')+'。ARC价格行为模块使用已完成的15分钟K线，不使用未来数据。');
 };
 window.addEventListener('resize',function(){if(klineChart)klineChart.resize();});
 
