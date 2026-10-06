@@ -424,7 +424,7 @@ function installPWA(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.
 if(window.matchMedia('(display-mode:standalone)').matches){document.getElementById('installBtn').classList.remove('show');document.getElementById('installBanner').classList.remove('show');}
 
 // ============ 全局状态 ============
-var currentContract='SR701',currentMkt=115,currentName='白糖701',futuresPrice=0,openInterestVal=0,dailyCloseHistory=[],klineData=[],intraday15mData=[],arcState=null,dailyOIHistory=[],accurateOICurrent=0,accurateOIHistory=[],accurateOIReady=false,accurateOIHistoryReady=false,accurateOIChangePct=null,lastQuoteData=null,oiRequestId=0,requestGeneration=0,klineChart=null;
+var currentContract='SR701',currentMkt=115,currentName='白糖701',futuresPrice=0,openInterestVal=0,dailyCloseHistory=[],klineData=[],intraday15mData=[],arcState=null,dailyOIHistory=[],accurateOICurrent=0,accurateOIHistory=[],accurateOIReady=false,accurateOIHistoryReady=false,accurateOIChangePct=null,lastQuoteData=null,oiRequestId=0,quoteRequestId=0,requestGeneration=0,klineChart=null;
 var dataState={quote:{status:'loading',source:'东方财富',observedAt:null,error:null},spot:{status:'loading',source:'生意社',observedAt:null,error:null},warehouse:{status:'loading',source:'东方财富数据中心',observedAt:null,error:null}};
 function setDataState(key,status,source,observedAt,error){dataState[key]={status:status,source:source||'',observedAt:observedAt||null,error:error||null};}
 function normalizeVarietyKey(code){return String(getVariety(code)||'').toUpperCase();}
@@ -520,11 +520,30 @@ function sinaCode(code){
   return m[1].toUpperCase()+String(year).slice(-2)+mm;
 }
 function fetchSinaScript(url,globalName,callback){
-  var script=document.createElement('script'),done=false,timer;
+  var script=document.createElement('script'),done=false,timer;try{delete window[globalName];}catch(e){window[globalName]=undefined;}
   script.src=url+((url.indexOf('?')>-1?'&':'?')+'_wb='+Date.now()+'_'+(++oiRequestId));script.async=true;
-  function finish(value){if(done)return;done=true;if(timer)clearTimeout(timer);if(script.parentNode)script.parentNode.removeChild(script);callback(value);}
+  function finish(value){if(done)return;done=true;if(timer)clearTimeout(timer);if(script.parentNode)script.parentNode.removeChild(script);try{delete window[globalName];}catch(e){window[globalName]=undefined;}callback(value);}
   script.onload=function(){finish(window[globalName]===undefined?null:window[globalName]);};script.onerror=function(){finish(null);};
   timer=setTimeout(function(){finish(null);},10000);document.body.appendChild(script);
+}
+function fetchSinaDailyRows(code,callback){
+  var symbol=sinaCode(code),globalName='_sinaDaily_'+(++oiRequestId);
+  fetchSinaScript('https://stock2.finance.sina.com.cn/futures/api/jsonp.php/var%20'+globalName+'=/InnerFuturesNewService.getDailyKLine?symbol='+encodeURIComponent(symbol),globalName,function(raw){callback(Array.isArray(raw)?raw:[]);});
+}
+function fetchSina15mRows(code,callback){
+  var symbol=sinaCode(code),globalName='_sina15m_'+(++oiRequestId);
+  fetchSinaScript('https://stock2.finance.sina.com.cn/futures/api/jsonp.php/var%20'+globalName+'=/InnerFuturesNewService.getFewMinLine?symbol='+encodeURIComponent(symbol)+'&type=15',globalName,function(raw){callback(Array.isArray(raw)?raw:[]);});
+}
+function sinaDailyToKlines(rows){return(rows||[]).map(function(x){return[x.d,x.o,x.c,x.h,x.l,x.v,x.p,x.s].join(',');}).filter(function(x){var p=x.split(',');return p[0]&&parseFloat(p[2])>0;});}
+function parseSina15mBars(rows){return(rows||[]).map(function(x){var time=x.d,open=parseFloat(x.o),close=parseFloat(x.c),high=parseFloat(x.h),low=parseFloat(x.l);if(!time||!(open>0&&close>0&&high>0&&low>0)||!isCompleted15mBar(time))return null;return{time:time.slice(0,16),day:getIntradayTradingDay(time),open:open,close:close,high:high,low:low,volume:parseFloat(x.v)||0};}).filter(Boolean);}
+function buildSinaQuote(raw,rows){
+  var v=typeof raw==='string'?raw.split(','):[],latest=rows&&rows.length?rows[rows.length-1]:null,hasLive=v.length>17&&parseFloat(v[8])>0,price=hasLive?parseFloat(v[8]):parseFloat(latest&&latest.c),open=hasLive?parseFloat(v[2]):parseFloat(latest&&latest.o),high=hasLive?parseFloat(v[3]):parseFloat(latest&&latest.h),low=hasLive?parseFloat(v[4]):parseFloat(latest&&latest.l),volume=hasLive?parseFloat(v[14]):parseFloat(latest&&latest.v),date=hasLive?v[17]:(latest&&latest.d),time=hasLive?v[1]:'150000';
+  if(!(price>0))return null;var prevClose=null;if(rows&&rows.length){for(var i=rows.length-1;i>=0;i--){if(rows[i].d&&rows[i].d<date&&parseFloat(rows[i].c)>0){prevClose=parseFloat(rows[i].c);break;}}}if(!(prevClose>0)&&latest&&parseFloat(latest.c)>0)prevClose=parseFloat(latest.c);var change=prevClose>0?price-prevClose:null,stamp=date?new Date(date+'T'+String(time||'150000').replace(/^(\d{2})(\d{2})(\d{2})$/,'$1:$2:$3')).getTime():NaN;
+  return{f43:price,f44:high,f45:low,f46:open,f47:volume,f57:currentContract,f58:(v[0]||currentName||currentContract),f59:0,f60:prevClose,f86:isFinite(stamp)?Math.floor(stamp/1000):null,f169:change,f170:prevClose>0?change/prevClose*10000:null,_source:hasLive?'新浪财经备用':'新浪日K备用',_dailyOnly:!hasLive};
+}
+function fetchSinaQuoteFallback(code,callback){
+  var symbol=sinaCode(code),globalName='hq_str_nf_'+symbol;
+  fetchSinaScript('https://hq.sinajs.cn/list=nf_'+encodeURIComponent(symbol),globalName,function(raw){fetchSinaDailyRows(code,function(rows){callback(buildSinaQuote(raw,rows));});});
 }
 function parseSinaQuote(raw){
   if(typeof raw!=='string')return null;var v=raw.split(',');if(v.length<15)return null;var num=function(x){var n=parseFloat(x);return isFinite(n)?n:0;};
@@ -548,17 +567,18 @@ function refreshAccurateOI(withHistory){fetchAccurateOICurrent();if(withHistory)
 function updateFuturesOpenInterestDisplay(oi){document.getElementById('openInterest').textContent=oi>0?Math.round(oi).toLocaleString():'--';}
 
 function fetchRealQuote(forceRefresh){
-  var open=updateMarketStatus(),requestCode=currentContract,requestMkt=currentMkt,generation=requestGeneration;
-  if(!open&&futuresPrice>0&&!forceRefresh){document.getElementById('dataSource').textContent='最近收盘·东方财富';document.getElementById('dataSource').className='badge badge-closing';document.getElementById('quoteTitle').textContent='期货收盘价 · '+(currentName||currentContract);return;}
-  fetchQuote(requestMkt,requestCode,function(data,errorType){
-    if(requestCode!==currentContract||requestMkt!==currentMkt||generation!==requestGeneration)return;
+  var open=updateMarketStatus(),requestCode=currentContract,requestMkt=currentMkt,generation=requestGeneration,thisQuoteRequest=++quoteRequestId;
+  if(!open&&futuresPrice>0&&!forceRefresh){document.getElementById('dataSource').textContent='最近收盘·'+((lastQuoteData&&lastQuoteData.source)||'行情源');document.getElementById('dataSource').className='badge badge-closing';document.getElementById('quoteTitle').textContent='期货收盘价 · '+(currentName||currentContract);return;}
+  function handleQuote(data,errorType){
+    if(requestCode!==currentContract||requestMkt!==currentMkt||generation!==requestGeneration||thisQuoteRequest!==quoteRequestId)return;
     var ds=document.getElementById('dataSource');
-    if(!data){var unavailable=errorType==='contract_unavailable'||isExpiredContract(requestCode,requestMkt),msg=unavailable?'合约已到期/无行情':'行情接口暂不可用';setDataState('quote','error','东方财富',null,msg);ds.textContent=msg;ds.className='badge badge-err';if(!futuresPrice)document.getElementById('futuresPrice').textContent='暂不可用';document.getElementById('quoteTitle').textContent=(unavailable?'请切换有效合约 · ':'行情暂不可用 · ')+(currentName||currentContract);return;}
-    if(!isPresentNumber(data.f59)){setDataState('quote','error','东方财富',null,'价格小数位缺失');ds.textContent='行情字段不完整';ds.className='badge badge-err';if(!futuresPrice)document.getElementById('futuresPrice').textContent='暂不可用';return;}
+    if(!data){var unavailable=errorType==='contract_unavailable'||isExpiredContract(requestCode,requestMkt),msg=unavailable?'合约已到期/无行情':'行情接口暂不可用';setDataState('quote','error','东方财富/新浪财经',null,msg);ds.textContent=msg;ds.className='badge badge-err';if(!futuresPrice)document.getElementById('futuresPrice').textContent='暂不可用';document.getElementById('quoteTitle').textContent=(unavailable?'请切换有效合约 · ':'行情暂不可用 · ')+(currentName||currentContract);return;}
+    if(!isPresentNumber(data.f59)){setDataState('quote','error','东方财富/新浪财经',null,'价格小数位缺失');ds.textContent='行情字段不完整';ds.className='badge badge-err';if(!futuresPrice)document.getElementById('futuresPrice').textContent='暂不可用';return;}
     var digits=Math.max(0,Number(data.f59)),price=isPresentNumber(data.f43)?Number(data.f43)/Math.pow(10,digits):null;
-    if(!(price>0)){setDataState('quote','error','东方财富',null,'行情获取失败');ds.textContent=open?'获取失败':'休市·数据暂不可用';ds.className='badge badge-err';if(!futuresPrice)document.getElementById('futuresPrice').textContent=open?'获取失败':'休市中';return;}
-    var quoteTime=isPresentNumber(data.f86)?new Date(Number(data.f86)*1000):null,observedAt=quoteTime&&isFinite(quoteTime.getTime())?quoteTime.toLocaleString('zh-CN',{hour12:false}):new Date().toLocaleString('zh-CN',{hour12:false});setDataState('quote',open?'live':'closing','东方财富',observedAt,null);ds.textContent=open?'实时行情·东方财富':'最近收盘·东方财富';ds.className=open?'badge badge-ok':'badge badge-closing';applyQuoteData(data,!open);
-  });
+    if(!(price>0)){setDataState('quote','error','东方财富/新浪财经',null,'行情获取失败');ds.textContent=open?'获取失败':'休市·数据暂不可用';ds.className='badge badge-err';if(!futuresPrice)document.getElementById('futuresPrice').textContent=open?'获取失败':'休市中';return;}
+    var source=data._source||'东方财富',dailyOnly=!!data._dailyOnly,quoteTime=isPresentNumber(data.f86)?new Date(Number(data.f86)*1000):null,observedAt=quoteTime&&isFinite(quoteTime.getTime())?quoteTime.toLocaleString('zh-CN',{hour12:false}):new Date().toLocaleString('zh-CN',{hour12:false}),isClosing=!open||dailyOnly;setDataState('quote',isClosing?'closing':'live',source,observedAt,dailyOnly?'实时接口不可用，显示最近完整日K':null);ds.textContent=(isClosing?'最近收盘·':'实时行情·')+source;ds.className=isClosing?'badge badge-closing':'badge badge-ok';applyQuoteData(data,isClosing);
+  }
+  fetchQuote(requestMkt,requestCode,function(data,errorType){if(data||errorType==='contract_unavailable'){handleQuote(data,errorType);return;}fetchSinaQuoteFallback(requestCode,function(fallback){handleQuote(fallback,fallback?null:errorType);});});
 }
 function applyQuoteData(data,isClosing){
   if(!data||!isPresentNumber(data.f59))return;
@@ -566,7 +586,7 @@ function applyQuoteData(data,isClosing){
   var price=scale(data.f43),preClose=scale(data.f60),change=scale(data.f169),changePct=isPresentNumber(data.f170)?Number(data.f170)/100:null;
   if(!(price>0))return;
   futuresPrice=price;
-  var c={price:price,open:scale(data.f46),high:scale(data.f44),low:scale(data.f45),preClose:preClose,volume:isPresentNumber(data.f47)?Number(data.f47):null,change:change,changePct:changePct,name:data.f58,openInterest:accurateOICurrent||0,digits:digits,source:'东方财富',observedAt:dataState.quote.observedAt,status:isClosing?'closing':'live'};
+  var c={price:price,open:scale(data.f46),high:scale(data.f44),low:scale(data.f45),preClose:preClose,volume:isPresentNumber(data.f47)?Number(data.f47):null,change:change,changePct:changePct,name:data.f58,openInterest:accurateOICurrent||0,digits:digits,source:data._source||'东方财富',observedAt:dataState.quote.observedAt,status:isClosing?'closing':'live'};
   lastQuoteData=c;currentName=c.name||currentName;
   updateFuturesDisplay(c,isClosing);if(accurateOICurrent>0)updateFuturesOpenInterestDisplay(accurateOICurrent);
   calculateSignals();updateOpenInterest(c);updateExitSignals();updateTabPrices();updateStockCycleAuto();
@@ -595,7 +615,8 @@ function fetchKlineData(mkt,code,callback){
   var end=now.getFullYear()+pad2(now.getMonth()+1)+pad2(now.getDate());
   var begDate=new Date(now.getTime()-45*86400000);
   var beg=begDate.getFullYear()+pad2(begDate.getMonth()+1)+pad2(begDate.getDate());
-  jsonpFetch('https://push2his.eastmoney.com/api/qt/stock/kline/get?secid='+getQuoteMarket(requestMkt)+'.'+requestCode+'&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57,f58&klt=101&fqt=1&beg='+beg+'&end='+end+'&ut=fa5fd1943c7b386f172d6893dbfba10b&lmt=60',function(resp){if(requestCode!==currentContract||requestMkt!==currentMkt||generation!==requestGeneration)return;if(resp&&resp.data&&resp.data.klines)callback(resp.data.klines);else callback(null);},10000);
+  function useSina(){fetchSinaDailyRows(requestCode,function(rows){if(requestCode!==currentContract||requestMkt!==currentMkt||generation!==requestGeneration)return;var klines=sinaDailyToKlines(rows);callback(klines.length?klines:null,'新浪财经备用');});}
+  jsonpFetch('https://push2his.eastmoney.com/api/qt/stock/kline/get?secid='+getQuoteMarket(requestMkt)+'.'+requestCode+'&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57,f58&klt=101&fqt=1&beg='+beg+'&end='+end+'&ut=fa5fd1943c7b386f172d6893dbfba10b&lmt=60',function(resp){if(requestCode!==currentContract||requestMkt!==currentMkt||generation!==requestGeneration)return;if(resp&&resp.data&&resp.data.klines)callback(resp.data.klines,'东方财富');else useSina();},10000);
 }
 function pad2(n){return n<10?'0'+n:''+n;}
 
@@ -618,11 +639,12 @@ function parseHistorical15mRows(rows,reference){
 function fetchHistorical15mData(mkt,code,callback){
   var requestMkt=mkt,requestCode=code,generation=requestGeneration,now=new Date(),end=now.getFullYear()+pad2(now.getMonth()+1)+pad2(now.getDate()),begDate=new Date(now.getTime()-30*86400000),beg=begDate.getFullYear()+pad2(begDate.getMonth()+1)+pad2(begDate.getDate());
   var url='https://push2his.eastmoney.com/api/qt/stock/kline/get?secid='+getQuoteMarket(requestMkt)+'.'+requestCode+'&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57,f58&klt=15&fqt=1&beg='+beg+'&end='+end+'&ut=fa5fd1943c7b386f172d6893dbfba10b&lmt=1000';
-  jsonpFetch(url,function(resp){if(requestCode!==currentContract||requestMkt!==currentMkt||generation!==requestGeneration)return;if(!resp||!resp.data||!Array.isArray(resp.data.klines)){callback(null);return;}callback(parseHistorical15mRows(resp.data.klines,Number(resp.data.preKPrice)||futuresPrice||null));},15000);
+  function useSina(){fetchSina15mRows(requestCode,function(rows){if(requestCode!==currentContract||requestMkt!==currentMkt||generation!==requestGeneration)return;var bars=parseSina15mBars(rows);callback(bars.length?bars:null,bars.length?'新浪15分钟K线':null);});}
+  jsonpFetch(url,function(resp){if(requestCode!==currentContract||requestMkt!==currentMkt||generation!==requestGeneration)return;if(!resp||!resp.data||!Array.isArray(resp.data.klines)){useSina();return;}var bars=parseHistorical15mRows(resp.data.klines,Number(resp.data.preKPrice)||futuresPrice||null);if(bars.length)callback(bars,'东方财富15分钟K线');else useSina();},15000);
 }
 function fetchIntraday15mData(mkt,code,callback){
   var requestMkt=mkt,requestCode=code,generation=requestGeneration;
-  function useHistory(){fetchHistorical15mData(requestMkt,requestCode,function(bars){if(requestCode!==currentContract||requestMkt!==currentMkt||generation!==requestGeneration)return;callback(bars&&bars.length?bars:null,bars&&bars.length?'15分钟历史K线':'分钟数据暂不可用');});}
+  function useHistory(){fetchHistorical15mData(requestMkt,requestCode,function(bars,source){if(requestCode!==currentContract||requestMkt!==currentMkt||generation!==requestGeneration)return;callback(bars&&bars.length?bars:null,bars&&bars.length?(source||'15分钟历史K线'):'分钟数据暂不可用');});}
   var url='https://push2.eastmoney.com/api/qt/stock/trends2/get?secid='+getQuoteMarket(requestMkt)+'.'+requestCode+'&fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13&fields2=f51,f52,f53,f54,f55,f56,f57,f58&ndays=5&iscr=0&_wb='+Date.now(),xhr=new XMLHttpRequest();
   xhr.open('GET',url,true);xhr.timeout=20000;
   xhr.onload=function(){if(requestCode!==currentContract||requestMkt!==currentMkt||generation!==requestGeneration)return;var resp=null;try{resp=JSON.parse(xhr.responseText);}catch(e){}if(xhr.status!==200||!resp||!resp.data||!Array.isArray(resp.data.trends)){useHistory();return;}var buckets={},order=[],prevClose=Number(resp.data.preClose)||Number(resp.data.prePrice)||futuresPrice||null;resp.data.trends.forEach(function(row){var p=String(row).split(',');if(p.length<6)return;var time=p[0],hm=(time.split(' ')[1]||'00:00').split(':'),minute=parseInt(hm[1],10),bucketMinute=Math.floor(minute/15)*15,bucketTime=time.split(' ')[0]+' '+pad2(parseInt(hm[0],10))+':'+pad2(bucketMinute),close=parseFloat(p[2]),high=parseFloat(p[3]),low=parseFloat(p[4]),open=parseFloat(p[1]);if(!(close>0&&high>0&&low>0))return;if(!(open>0))open=prevClose>0?prevClose:close;prevClose=close;if(!buckets[bucketTime]){buckets[bucketTime]={time:bucketTime,day:getIntradayTradingDay(bucketTime),open:open,close:close,high:high,low:low,volume:parseFloat(p[5])||0};order.push(bucketTime);}else{var b=buckets[bucketTime];b.close=close;b.high=Math.max(b.high,high);b.low=Math.min(b.low,low);b.volume+=(parseFloat(p[5])||0);}});var bars=order.map(function(k){return buckets[k];}).filter(function(b){return isCompleted15mBar(b.time);}),days=groupIntradayByDay(bars).order;if(days.length<3){useHistory();return;}callback(bars,'五日分钟聚合');};
