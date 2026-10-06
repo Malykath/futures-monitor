@@ -1,11 +1,11 @@
 {
-  "update_time": "2026-10-05 18:46",
+  "update_time": "2026-10-06 17:25",
   "data_published": "2026-10-05 17:00",
   "timezone": "Asia/Shanghai",
   "frequency": "daily_snapshot",
   "source": "生意社(100ppi.com)现货快照",
   "source_url": "https://www.100ppi.com/xhb/",
-  "data_note": "每个交易日17:00左右发布现货成交参考价；各品种规格和单位不同，主程序仅在可比时计算基差。",
+  "data_note": "每个交易日17:00左右发布现货成交参考价；各品种规格和单位不同，主程序仅在可比时计算基差。2026-10-06 为国庆假期，当日无新快照，数据仍为10-05 17:00版。",
   "varieties": {
     "PG": 7900.0,
     "J": 2317.5,
